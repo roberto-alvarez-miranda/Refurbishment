@@ -5,7 +5,7 @@
     - [ ] Write Tests for validating new MIME types in the upload endpoint
     - [ ] Implement file extension and MIME type validation in `backend/app/main.py`
     - [ ] Ensure files are correctly stored in the GCP bucket
-- [ ] Task: Conductor - User Manual Verification 'Phase 1: Upload Endpoint Expansion' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 1: Upload Endpoint Expansion' (Protocol in workflow.md) [checkpoint: addf9ca]
 
 ## Phase 2: Gemini Parsing Engine
 - [ ] Task: Implement AI Processing Service
