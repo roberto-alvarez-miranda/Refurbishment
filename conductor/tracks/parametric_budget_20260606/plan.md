@@ -4,7 +4,7 @@
 - [x] Task: Define Data Models 4680429
     - [ ] Write Tests for Data Models
     - [ ] Implement Pydantic models for Construction Units and Budgets in `backend/app/models/`
-- [ ] Task: Conductor - User Manual Verification 'Phase 1: Data Modeling and Setup' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 1: Data Modeling and Setup' (Protocol in workflow.md) [checkpoint: f70bcf4]
 
 ## Phase 2: Core Calculation Engine
 - [ ] Task: Implement Budget Calculator Service
