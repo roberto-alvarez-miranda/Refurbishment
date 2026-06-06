@@ -11,13 +11,13 @@
 - [ ] Task: Conductor - User Manual Verification 'Phase 1: Backend DWG/DXF Ingestion and Scale Resolution' (Protocol in workflow.md)
 
 ## Phase 2: Geometry-to-Semantic Aggregator & Gemini Feeding
-- [ ] Task: Implement Room and Dimension Aggregator
-    - [ ] Write logic to find closed polylines (`LWPOLYLINE`) and associate them with nearest text labels (`TEXT`/`MTEXT`) inside the coordinate boundaries.
-    - [ ] Generate a clean, structured JSON and text summary (e.g. "Room 'Cocina' has Area=12.5m², Perimeter=15ml").
-    - [ ] Write Pytest unit tests for this coordinate-matching algorithm.
-- [ ] Task: Integrate Semantic Summary into Gemini API Prompt
-    - [ ] Modify `ai_parser.py` to optionally take the pre-calculated geometry summary and append it to the Gemini prompt instead of/in addition to raw file upload.
-- [ ] Task: Conductor - User Manual Verification 'Phase 2: Geometry-to-Semantic Aggregator & Gemini Feeding' (Protocol in workflow.md)
+- [x] Task: Implement Room and Dimension Aggregator
+    - [x] Write logic to find closed polylines (`LWPOLYLINE`) and associate them with nearest text labels (`TEXT`/`MTEXT`) inside the coordinate boundaries.
+    - [x] Generate a clean, structured JSON and text summary (e.g. "Room 'Cocina' has Area=12.5m², Perimeter=15ml").
+    - [x] Write Pytest unit tests for this coordinate-matching algorithm.
+- [x] Task: Integrate Semantic Summary into Gemini API Prompt
+    - [x] Modify `ai_parser.py` to optionally take the pre-calculated geometry summary and append it to the Gemini prompt instead of/in addition to raw file upload.
+- [x] Task: Conductor - User Manual Verification 'Phase 2: Geometry-to-Semantic Aggregator & Gemini Feeding' (Protocol in workflow.md)
 
 ## Phase 3: Frontend Interactive Scale Calibration
 - [ ] Task: Render Vector CAD Preview in React
