@@ -47,7 +47,11 @@ class AIParsingService:
         else:
             # Fallback for old tests or local testing without user context
             try:
-                self.client = genai.Client()
+                self.client = genai.Client(
+                    vertexai=True,
+                    project=os.getenv("GOOGLE_CLOUD_PROJECT", "app-reformia"),
+                    location="europe-southwest1"
+                )
             except Exception as e:
                 print(f"Warning: Failed to initialize fallback genai client: {e}")
 

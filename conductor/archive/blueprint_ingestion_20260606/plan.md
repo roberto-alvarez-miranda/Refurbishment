@@ -35,3 +35,14 @@
     - [ ] Modify `AIParsingService` to accept `user` credentials instead of using global defaults
     - [ ] Initialize the `google-genai` client using Vertex AI and the impersonated credentials
 - [x] Task: Conductor - User Manual Verification 'Phase 5: Dynamic Service Account Impersonation' (Protocol in workflow.md) [checkpoint: f983650]
+## Phase 6: Frontend Implementation
+- [x] Task: Construct UI layout and components
+    - [x] Translate/adapt Stitch designs to React components using Vite
+    - [x] Create the base layout for the blueprint ingestion workflow
+- [x] Task: Implement AI Preview Screen
+    - [x] Display extracted data grouped by "tipo de partida" (item type)
+    - [x] Implement a tree-view breakdown detailing the measurements
+- [x] Task: Implement Data Persistence
+    - [x] Write logic to save approved components to Firestore/BigQuery
+    - [x] Connect the saving logic to consolidate budget information
+- [x] Task: Conductor - User Manual Verification 'Phase 6: Frontend Implementation' (Protocol in workflow.md)
