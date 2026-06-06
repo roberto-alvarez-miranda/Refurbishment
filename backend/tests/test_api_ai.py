@@ -10,7 +10,7 @@ sys.modules['google.cloud'] = MagicMock()
 import pytest
 from fastapi.testclient import TestClient
 from app.main import app
-from app.models.plan import ExtractedPlan, Room
+from app.models.plan import ExtractedPlan, Dwelling, EstanciaSummary
 
 client = TestClient(app)
 
@@ -21,7 +21,15 @@ def test_preview_blueprint_endpoint(mock_ai_service_class, mock_verify):
     # Setup mock parser instance
     mock_parser = MagicMock()
     mock_plan = ExtractedPlan(
-        rooms=[Room(name="Mocked Room", length=4.0, width=3.0, height=2.5)],
+        dwellings=[
+            Dwelling(
+                name="Vivienda A",
+                total_area_m2=65.0,
+                estancias=[EstanciaSummary(type="cocina", area_m2=10.0, perimeter_m=12.0)],
+                partition_walls_ml=35.0,
+                exterior_walls_ml=15.0
+            )
+        ],
         general_notes="Mocked notes"
     )
     mock_parser.parse_blueprint.return_value = mock_plan
@@ -40,9 +48,9 @@ def test_preview_blueprint_endpoint(mock_ai_service_class, mock_verify):
     
     assert response.status_code == 200
     data = response.json()
-    assert "rooms" in data
-    assert len(data["rooms"]) == 1
-    assert data["rooms"][0]["name"] == "Mocked Room"
+    assert "dwellings" in data
+    assert len(data["dwellings"]) == 1
+    assert data["dwellings"][0]["name"] == "Vivienda A"
     
     # Verify the service was called correctly
     mock_parser.parse_blueprint.assert_called_once_with(

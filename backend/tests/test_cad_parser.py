@@ -6,20 +6,23 @@ def test_get_scale_factor():
     # 1. Test Millimeters (insunits = 4)
     doc_mm = MagicMock()
     doc_mm.header.get.side_effect = lambda var, default: 4 if var == '$INSUNITS' else 1.0
-    factor_mm = CADParser.get_scale_factor(doc_mm)
+    factor_mm, ins_mm = CADParser.get_scale_factor(doc_mm)
     assert factor_mm == 0.001  # 1 mm = 0.001 m
+    assert ins_mm == 4
 
     # 2. Test Meters (insunits = 6)
     doc_m = MagicMock()
     doc_m.header.get.side_effect = lambda var, default: 6 if var == '$INSUNITS' else 1.0
-    factor_m = CADParser.get_scale_factor(doc_m)
+    factor_m, ins_m = CADParser.get_scale_factor(doc_m)
     assert factor_m == 1.0  # 1 m = 1.0 m
+    assert ins_m == 6
 
     # 3. Test Unspecified / Fallback (insunits = 0)
     doc_unspec = MagicMock()
     doc_unspec.header.get.side_effect = lambda var, default: 0 if var == '$INSUNITS' else 1.0
-    factor_unspec = CADParser.get_scale_factor(doc_unspec)
+    factor_unspec, ins_unspec = CADParser.get_scale_factor(doc_unspec)
     assert factor_unspec == 0.001  # Fallback to mm
+    assert ins_unspec == 0
 
 def test_calculate_polyline_area_and_perimeter():
     # Define a 10x10 square in CAD units

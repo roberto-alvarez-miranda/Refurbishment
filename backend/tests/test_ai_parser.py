@@ -2,7 +2,7 @@ import pytest
 from unittest.mock import MagicMock, patch
 import app.services.ai_parser
 from app.services.ai_parser import AIParsingService
-from app.models.plan import ExtractedPlan, Room, MaterialAnnotation
+from app.models.plan import ExtractedPlan, Dwelling, EstanciaSummary
 
 @patch("app.services.ai_parser.genai.Client")
 def test_parse_blueprint(mock_genai_client_class):
@@ -14,13 +14,13 @@ def test_parse_blueprint(mock_genai_client_class):
     mock_response = MagicMock()
     # Pydantic parses the generated response, so we mock the parsed object
     mock_response.parsed = ExtractedPlan(
-        rooms=[
-            Room(
+        dwellings=[
+            Dwelling(
                 name="Living Room",
-                length=5.0,
-                width=4.0,
-                height=2.5,
-                materials=[MaterialAnnotation(type="floor", name="Oak Wood", confidence=0.9)]
+                total_area_m2=20.0,
+                estancias=[EstanciaSummary(type="salón", area_m2=20.0, perimeter_m=18.0)],
+                partition_walls_ml=15.0,
+                exterior_walls_ml=12.0
             )
         ],
         general_notes="Standard apartment plan"
@@ -32,9 +32,9 @@ def test_parse_blueprint(mock_genai_client_class):
     
     result = parser.parse_blueprint("gs://my-bucket/plan.pdf", "application/pdf")
     
-    assert result.rooms[0].name == "Living Room"
-    assert result.rooms[0].length == 5.0
-    assert result.rooms[0].materials[0].name == "Oak Wood"
+    assert result.dwellings[0].name == "Living Room"
+    assert result.dwellings[0].total_area_m2 == 20.0
+    assert result.dwellings[0].estancias[0].type == "salón"
 
 def test_parse_blueprint_unsupported_type():
     parser = AIParsingService()

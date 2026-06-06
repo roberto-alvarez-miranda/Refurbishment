@@ -1,5 +1,7 @@
 {
   "projects": {
     "default": "app-reformia"
-  }
+  },
+  "targets": {},
+  "etags": {}
 }

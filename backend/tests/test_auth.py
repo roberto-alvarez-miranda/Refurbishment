@@ -46,7 +46,7 @@ def test_upload_valid_file_with_auth(mock_storage_client, mock_verify):
     assert response.status_code == 200
     assert response.json()["filename"] == "plan.pdf"
     
-from app.models.plan import ExtractedPlan, Room
+from app.models.plan import ExtractedPlan, Dwelling, EstanciaSummary
 
 @patch("app.dependencies.auth.auth.verify_id_token")
 @patch("app.api.ai.AIParsingService")
@@ -55,7 +55,15 @@ def test_preview_blueprint_endpoint_with_auth(mock_ai_service_class, mock_verify
     
     mock_parser = MagicMock()
     mock_plan = ExtractedPlan(
-        rooms=[Room(name="Mocked Room", length=4.0, width=3.0, height=2.5)],
+        dwellings=[
+            Dwelling(
+                name="Vivienda A",
+                total_area_m2=65.0,
+                estancias=[EstanciaSummary(type="cocina", area_m2=10.0, perimeter_m=12.0)],
+                partition_walls_ml=35.0,
+                exterior_walls_ml=15.0
+            )
+        ],
         general_notes="Mocked notes"
     )
     mock_parser.parse_blueprint.return_value = mock_plan

@@ -11,36 +11,23 @@ export interface BudgetItem {
   category: string;
 }
 
-export interface MaterialAnnotation {
+export interface EstanciaSummary {
   type: string;
+  area_m2: number;
+  perimeter_m: number;
+  count: number;
+}
+
+export interface Dwelling {
   name: string;
-  confidence: number;
-}
-
-export interface Wall {
-  length: number;
-  height: number;
-  materials: MaterialAnnotation[];
-}
-
-export interface Window {
-  width: number;
-  height: number;
-  materials: MaterialAnnotation[];
-}
-
-export interface Room {
-  name: string;
-  length: number;
-  width: number;
-  height: number;
-  walls: Wall[];
-  windows: Window[];
-  materials: MaterialAnnotation[];
+  total_area_m2: number;
+  estancias: EstanciaSummary[];
+  partition_walls_ml: number;
+  exterior_walls_ml: number;
 }
 
 export interface ExtractedPlan {
-  rooms: Room[];
+  dwellings: Dwelling[];
   general_notes?: string;
 }
 
@@ -69,7 +56,9 @@ export const uploadAsset = async (file: File): Promise<{ filename: string; gcs_u
     });
 
     if (!response.ok) {
-      throw new Error(`Upload failed with status: ${response.status}`);
+      const errData = await response.json().catch(() => ({}));
+      const errMsg = errData.detail || `Upload failed with status: ${response.status}`;
+      throw new Error(errMsg);
     }
 
     return await response.json();
@@ -90,7 +79,9 @@ export const previewBlueprint = async (gcsUri: string, mimeType: string): Promis
     });
 
     if (!response.ok) {
-      throw new Error(`AI Preview failed with status: ${response.status}`);
+      const errData = await response.json().catch(() => ({}));
+      const errMsg = errData.detail || `AI Preview failed with status: ${response.status}`;
+      throw new Error(errMsg);
     }
 
     return await response.json();

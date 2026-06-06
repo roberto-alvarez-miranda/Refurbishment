@@ -1,6 +1,7 @@
 import os
 import tempfile
 import logging
+import json
 from google import genai
 from google.genai import types
 import google.auth
@@ -80,13 +81,13 @@ class AIParsingService:
         if mime_type not in ALLOWED_MIME_TYPES:
             raise ValueError(f"Unsupported mime type for parsing: {mime_type}")
         
-        # Check if it is a CAD file (by checking GCS extension as MIME types can be generic application/octet-stream)
+        # Check if it is a CAD file
         lower_uri = gcs_uri.lower()
         is_dwg = lower_uri.endswith(".dwg") or mime_type == "application/x-dwg"
-        is_dxf = lower_uri.endswith(".dxf") or mime_type in ["application/dxf", "image/vnd.dxf", "application/x-dxf"]
+        is_dxf = lower_uri.endswith(".dxf") or mime_type in ["application/dxf", "image/vnd.dxf", "application/x-dxf", "application/octet-stream"]
 
         if is_dwg or is_dxf:
-            logger.info("CAD file detected. Routing to vector parser...")
+            logger.info("CAD file detected. Routing to vector parser and semantic AI synthesis...")
             
             with tempfile.TemporaryDirectory() as temp_dir:
                 # 1. Download the file locally
@@ -104,8 +105,11 @@ class AIParsingService:
                 else:
                     parse_target = temp_input
                 
-                # 3. Parse the vector geometry
-                return CADParser.parse_dxf(parse_target)
+                # 3. Extract raw scale, mathematics areas, and all text elements
+                raw_cad_data = CADParser.extract_raw_cad_data(parse_target)
+                
+                # 4. Feed the raw data to Gemini 3.5 Flash for intelligent semantic cleaning and synthesis!
+                return self._synthesize_cad_data_with_gemini(raw_cad_data)
 
         # Fallback to Gemini Multimodal for images and PDFs
         logger.info("Multimodal document detected. Routing to Gemini AI model...")
@@ -114,8 +118,14 @@ class AIParsingService:
 
         prompt = (
             "You are an expert architect and cost estimator. Carefully analyze the provided floor plan, blueprint, or room image. "
-            "Extract all the rooms visible. For each room, estimate or extract the dimensions (length, width, height) in meters. "
-            "Also extract any mentioned or visibly obvious materials for floors, walls, ceilings, and windows. "
+            "Our focus in this phase is to capture structured data to start a refurbishment project. "
+            "A floor plan sheet can contain multiple dwellings/apartments (viviendas). You MUST identify each distinct "
+            "housing unit/dwelling (e.g. 'Vivienda Tipo A', 'Vivienda Tipo B') and group the rooms and areas for each unit.\n\n"
+            
+            "For each distinct dwelling, extract:\n"
+            "1. Name and total area in m².\n"
+            "2. Estancias (rooms) aggregated by category ('cocina', 'baño', 'pasillo', 'dormitorio', 'salón'). Sum their areas and perimeters.\n"
+            "3. Estimation of internal partition walls in linear meters (ml) and exterior facade walls in ml.\n\n"
             "Respond strictly with a structured JSON matching the provided schema."
         )
 
@@ -124,6 +134,59 @@ class AIParsingService:
         response = self.client.models.generate_content(
             model=self.model_id,
             contents=[file_part, prompt],
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=ExtractedPlan,
+                temperature=0.0
+            ),
+        )
+
+        return response.parsed
+
+    def _synthesize_cad_data_with_gemini(self, raw_cad_data: dict) -> ExtractedPlan:
+        """
+        Feeds raw CAD coordinates and texts to Gemini 3.5 Flash to clean noise, match rooms semantically, 
+        and output a perfect high-fidelity ExtractedPlan.
+        """
+        if not self.client:
+            raise RuntimeError("Gemini client is not initialized.")
+
+        prompt = (
+            "You are an expert architect, quantity surveyor, and cost estimator. We have extracted raw vector data, "
+            "line lengths per layer, and text annotations from an architectural CAD (DXF/DWG) floor plan.\n\n"
+            
+            "Our focus in this phase is to capture structured data to start a refurbishment project.\n\n"
+            
+            "### CRITICAL UNDERSTANDING:\n"
+            "A floor plan sheet can contain multiple distinct dwellings/apartments (viviendas) on a single floor. "
+            "You MUST cluster the extracted rooms, texts, and line lengths into their respective distinct housing units (Dwellings/Viviendas). "
+            "For example, if you see annotations like 'S.U. viv. 1: 59.80 m2' and 'S.U. viv. 2: 101.09 m2', these are two separate apartments! "
+            "Group the rooms, bathrooms, and corridors belonging to each apartment separately under its own 'Dwelling' object.\n\n"
+            
+            "### RULES:\n"
+            "1. **Identify Real Dwellings**: Cluster rooms and texts into distinct housing units. Name them clearly (e.g., 'Vivienda Tipo A - 59.80m²', 'Vivienda Tipo B - 101.09m²').\n"
+            "2. **Group Estancias by Category**: Inside each dwelling, aggregate all room areas (m2) and perimeters (ml) by their type/category: "
+            "'cocina', 'baño', 'pasillo', 'dormitorio', 'salón'. For example, if a dwelling has 3 bedrooms, return a single 'dormitorio' category with "
+            "count=3, and the sum of their areas and perimeters. Do NOT output raw coordinate tags or duplicate items!\n"
+            "3. **Estimate Partition Walls (ml)**: Look at the `layer_line_lengths_meters` in raw data. "
+            "For layers representing partitions (like 'Tabiques', 'Paredes', 'Partition', 'Muros_Interiores'), calculate the linear meters (ml) of partition walls. "
+            "Because lines in CAD are drawn on both sides of a wall, divide the line lengths by 2. Distribute the total partition walls reasonably between the dwellings "
+            "based on their size (e.g. approx 0.8 to 1.2 ml of partition wall per m² of dwelling area).\n"
+            "4. **CRITICAL: Noise Filtering**: You MUST completely ignore and filter out all drawing metadata, title blocks, layout notes, dates, "
+            "and company text annotations. For example, DO NOT generate dwellings or rooms for: 'VERSO ESPACIO RESIDENCIAL S.L.', "
+            "'ENERO 2022', 'CALLE GENERAL ELORZA', 'PLANTA TIPO', 'LEVANTAMIENTO DE EDIFICIO...', 'Phase 1', 'ESTADO ACTUAL', "
+            "or scale indicators. These are not parts of a home!\n\n"
+            
+            "### RAW CAD DATA:\n"
+            f"{json.dumps(raw_cad_data, indent=2)}\n\n"
+            
+            "Return the consolidated, clean multi-dwelling floor plan structured exactly as requested in the JSON schema."
+        )
+
+        logger.info("Sending raw CAD metadata to Gemini 3.5 Flash for semantic multi-dwelling synthesis...")
+        response = self.client.models.generate_content(
+            model=self.model_id,
+            contents=prompt,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
                 response_schema=ExtractedPlan,

@@ -28,6 +28,13 @@
       "enabled": true
     },
     "singleProjectMode": true
+  },
+  "auth": {
+    "providers": {
+      "googleSignIn": {
+        "oAuthBrandDisplayName": "Refurbishment",
+        "supportEmail": "roberto.alvarez.miranda@gmail.com"
+      }
+    }
   }
 }
-

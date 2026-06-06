@@ -1,30 +1,19 @@
 from typing import List, Optional
 from pydantic import BaseModel
 
-class MaterialAnnotation(BaseModel):
-    type: str  # e.g., "floor", "wall", "ceiling", "window"
-    name: str  # e.g., "Oak Wood", "Brick", "Double Glazing"
-    confidence: float # AI confidence score (0.0 to 1.0)
+class EstanciaSummary(BaseModel):
+    type: str          # e.g., "cocina", "baño", "pasillo", "dormitorio", "salón"
+    area_m2: float     # m² acumulados para este tipo de estancia
+    perimeter_m: float # perímetros acumulados (para rodapiés, etc.)
+    count: int = 1     # cantidad de estancias de este tipo en la vivienda
 
-class Wall(BaseModel):
-    length: float
-    height: float
-    materials: List[MaterialAnnotation] = []
-
-class Window(BaseModel):
-    width: float
-    height: float
-    materials: List[MaterialAnnotation] = []
-
-class Room(BaseModel):
-    name: str
-    length: float
-    width: float
-    height: float
-    walls: List[Wall] = []
-    windows: List[Window] = []
-    materials: List[MaterialAnnotation] = []
+class Dwelling(BaseModel):
+    name: str                       # e.g., "Vivienda Tipo A (su 59.80 m²)", "Vivienda Tipo B"
+    total_area_m2: float            # Área útil total de la vivienda
+    estancias: List[EstanciaSummary] = []
+    partition_walls_ml: float       # Metros lineales (ml) de tabiquería interna
+    exterior_walls_ml: float        # Metros lineales (ml) de cerramientos exteriores / fachadas
 
 class ExtractedPlan(BaseModel):
-    rooms: List[Room] = []
+    dwellings: List[Dwelling] = []
     general_notes: Optional[str] = None

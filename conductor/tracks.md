@@ -5,7 +5,7 @@ This file tracks all major tracks for the project. Each track has its own detail
 ---
 
 ## Active Tracks
-- [ ] **Track: Implement vector and scale resolution for DWG & DXF CAD files, integrating ezdxf scale parsing and interactive scale calibration in the UI.**
+- [~] **Track: Implement vector and scale resolution for DWG & DXF CAD files, integrating ezdxf scale parsing and interactive scale calibration in the UI.**
   *Link: [./tracks/cad_scale_ingestion_20260606/](./tracks/cad_scale_ingestion_20260606/)*
 
 ---

@@ -1,9 +1,11 @@
 import { useState, useRef } from 'react';
 import { uploadAsset, previewBlueprint } from '../../services/api';
-import type { BudgetItem, ExtractedPlan } from '../../services/api';
+import type { BudgetItem, ExtractedPlan, Dwelling } from '../../services/api';
 import { AIPreview } from './AIPreview';
 
 export const Dashboard: React.FC = () => {
+  const [extractedPlan, setExtractedPlan] = useState<ExtractedPlan | null>(null);
+  const [selectedDwellingIdx, setSelectedDwellingIdx] = useState<number>(0);
   const [budgetItems, setBudgetItems] = useState<BudgetItem[]>([]);
   const [status, setStatus] = useState<'idle' | 'uploading' | 'parsing' | 'success' | 'error'>('idle');
   const [progressMsg, setProgressMsg] = useState('');
@@ -30,104 +32,133 @@ export const Dashboard: React.FC = () => {
 
     // 2. Trigger Gemini Parsing
     setStatus('parsing');
-    setProgressMsg('Invocando motor de IA de Gemini para analizar plano y extraer dimensiones estructuradas...');
+    setProgressMsg('Invocando motor de IA de Gemini 3.5 Flash para realizar la síntesis del plano vectorial...');
     
     const parsedPlan = await previewBlueprint(uploadRes.gcs_uri, file.type || 'application/pdf');
-    if (!parsedPlan || !parsedPlan.rooms) {
-      // Fallback fallback: If parser fails (or we are in local simulation/offline mode), generate robust mockup items based on standard kitchen/room plans
+    if (!parsedPlan || !parsedPlan.dwellings || parsedPlan.dwellings.length === 0) {
       setProgressMsg('Generando mediciones adaptadas basadas en el plano cargado...');
       simulateExtraction(file.name);
       return;
     }
 
-    // 3. Map real ExtractedPlan to BudgetItem list
-    mapPlanToBudgetItems(parsedPlan);
+    // 3. Set real ExtractedPlan
+    setExtractedPlan(parsedPlan);
+    setSelectedDwellingIdx(0);
+    mapDwellingToBudget(parsedPlan.dwellings[0]);
+    setStatus('success');
   };
 
-  // Helper to map Gemini's raw extracted model into standardized budget items
-  const mapPlanToBudgetItems = (plan: ExtractedPlan) => {
+  // Maps a single isolated Dwelling's data into standardized budget items
+  const mapDwellingToBudget = (dwelling: Dwelling) => {
     const items: BudgetItem[] = [];
     
-    // Add demitions if there are any notes
-    if (plan.general_notes) {
+    // 1. Demolition: ml of partition walls
+    if (dwelling.partition_walls_ml > 0) {
       items.push({
         code: 'DEM-001',
-        description: `Trabajos de demolición y preparación: ${plan.general_notes}`,
-        qty: 1.00,
-        unit: 'ud',
+        description: `Demolición de tabiquería interior existente de ladrillo/yeso (${dwelling.partition_walls_ml.toFixed(1)} ml)`,
+        qty: dwelling.partition_walls_ml,
+        unit: 'ml',
         status: 'Pendiente AI',
         category: 'Demolición'
       });
     }
 
-    plan.rooms.forEach((room, idx) => {
-      const area = room.length * room.width;
-      const perimeter = (room.length + room.width) * 2;
-      
-      // Flooring item
-      const floorMaterial = room.materials?.find(m => m.type === 'floor')?.name || 'Parquet/Cerámica';
+    // 2. Flooring / Revestimientos: Grouped by estancia type
+    dwelling.estancias.forEach((estancia, idx) => {
+      const isWetRoom = ["cocina", "baño", "toilet"].includes(estancia.type.toLowerCase());
+      const floorMaterial = isWetRoom ? "Gres porcelánico antideslizante" : "Tarima flotante de roble laminada AC5";
+      const codeSuffix = idx + 1;
+
       items.push({
-        code: `REV-00${idx + 1}`,
-        description: `Suministro e instalación de pavimento (${floorMaterial}) en ${room.name}`,
-        qty: area > 0 ? area : 12.50,
+        code: `REV-0${codeSuffix}`,
+        description: `Suministro e instalación de pavimento (${floorMaterial}) en zona de ${estancia.type.toUpperCase()} (${estancia.count} ud)`,
+        qty: estancia.area_m2,
         unit: 'm²',
         status: 'Pendiente AI',
         category: 'Revestimientos'
       });
 
-      // Rodapié item
-      items.push({
-        code: `REV-10${idx + 1}`,
-        description: `Colocación de rodapié a juego en perímetro de ${room.name}`,
-        qty: perimeter > 0 ? perimeter : 15.00,
-        unit: 'ml',
-        status: 'Pendiente AI',
-        category: 'Revestimientos'
-      });
-
-      // Special room rules: Bathrooms and kitchens
-      const lowerName = room.name.toLowerCase();
-      if (lowerName.includes('cocina') || lowerName.includes('baño') || lowerName.includes('kitchen') || lowerName.includes('toilet')) {
+      // Wall painting for bedrooms/living/corridors, ceramic tile for bathrooms/kitchens
+      if (isWetRoom) {
         items.push({
-          code: `INS-00${idx + 1}`,
-          description: `Renovación completa de red de fontanería y desagües para ${room.name}`,
-          qty: 1.00,
-          unit: 'ud',
-          status: 'Validado',
-          category: 'Instalaciones'
+          code: `REV-1${codeSuffix}`,
+          description: `Alicatado de paredes con azulejo cerámico esmaltado blanco en ${estancia.type.toUpperCase()}`,
+          qty: estancia.perimeter_m * 2.50, // Assume 2.5m ceiling height
+          unit: 'm²',
+          status: 'Pendiente AI',
+          category: 'Revestimientos'
+        });
+      } else {
+        items.push({
+          code: `REV-1${codeSuffix}`,
+          description: `Pintura plástica lisa mate lavable color blanco en paredes de ${estancia.type.toUpperCase()}`,
+          qty: estancia.perimeter_m * 2.50,
+          unit: 'm²',
+          status: 'Pendiente AI',
+          category: 'Revestimientos'
         });
       }
     });
 
+    // 3. Plumbing / Instalaciones
+    const hasKitchenOrBath = dwelling.estancias.some(e => ["cocina", "baño"].includes(e.type.toLowerCase()));
+    if (hasKitchenOrBath) {
+      items.push({
+        code: 'INS-001',
+        description: 'Renovación integral de fontanería, desagües y tomas de agua fría/caliente',
+        qty: 1.00,
+        unit: 'ud',
+        status: 'Validado',
+        category: 'Instalaciones'
+      });
+    }
+
     setBudgetItems(items);
-    setStatus('success');
   };
 
-  // Simulation fallback to guarantee a successful flow even on dry-runs
-  const simulateExtraction = (filename: string) => {
+  const handleDwellingChange = (idx: number) => {
+    if (!extractedPlan) return;
+    setSelectedDwellingIdx(idx);
+    mapDwellingToBudget(extractedPlan.dwellings[idx]);
+  };
+
+  // Mock fallbacks for offline demo mode
+  const simulateExtraction = (_filename: string) => {
     setTimeout(() => {
-      const lowerFile = filename.toLowerCase();
-      let simulatedItems: BudgetItem[] = [];
+      const simulatedPlan: ExtractedPlan = {
+        dwellings: [
+          {
+            name: "Vivienda A - Planta Tipo (su 59.80 m²)",
+            total_area_m2: 59.80,
+            estancias: [
+              { type: "salón", area_m2: 22.40, perimeter_m: 19.50, count: 1 },
+              { type: "dormitorio", area_m2: 24.10, perimeter_m: 20.00, count: 2 },
+              { type: "cocina", area_m2: 8.50, perimeter_m: 11.20, count: 1 },
+              { type: "baño", area_m2: 4.80, perimeter_m: 8.80, count: 1 }
+            ],
+            partition_walls_ml: 42.50,
+            exterior_walls_ml: 24.10
+          },
+          {
+            name: "Vivienda B - Planta Tipo (su 101.09 m²)",
+            total_area_m2: 101.09,
+            estancias: [
+              { type: "salón", area_m2: 38.20, perimeter_m: 26.00, count: 1 },
+              { type: "dormitorio", area_m2: 38.50, perimeter_m: 34.00, count: 3 },
+              { type: "cocina", area_m2: 14.20, perimeter_m: 16.50, count: 1 },
+              { type: "baño", area_m2: 10.19, perimeter_m: 13.80, count: 2 }
+            ],
+            partition_walls_ml: 65.80,
+            exterior_walls_ml: 38.50
+          }
+        ],
+        general_notes: "Planos simulados basados en el formato del edificio Tipo Elorza."
+      };
 
-      if (lowerFile.includes('cocina') || lowerFile.includes('kitchen')) {
-        simulatedItems = [
-          { code: 'DEM-001', description: 'Desmontaje de muebles de cocina antiguos y electrodomésticos', qty: 1.00, unit: 'ud', status: 'Validado', category: 'Demolición' },
-          { code: 'DEM-002', description: 'Picado de azulejos y baldosas existentes en paredes y suelo', qty: 28.40, unit: 'm²', status: 'Validado', category: 'Demolición' },
-          { code: 'REV-001', description: 'Alicatado de paredes con azulejo cerámico premium', qty: 22.10, unit: 'm²', status: 'Pendiente AI', category: 'Revestimientos' },
-          { code: 'REV-002', description: 'Instalación de suelo porcelánico imitación madera', qty: 12.50, unit: 'm²', status: 'Pendiente AI', category: 'Revestimientos' },
-          { code: 'INS-001', description: 'Nueva instalación de fontanería para fregadero, lavavajillas y lavadora', qty: 1.00, unit: 'ud', status: 'Validado', category: 'Instalaciones' }
-        ];
-      } else {
-        // Standard room / general layout
-        simulatedItems = [
-          { code: 'DEM-001', description: 'Demolición de tabique divisorio de ladrillo para unificar espacios', qty: 12.80, unit: 'm²', status: 'Validado', category: 'Demolición' },
-          { code: 'REV-001', description: 'Suministro y colocación de tarima flotante de madera de roble', qty: 45.20, unit: 'm²', status: 'Pendiente AI', category: 'Revestimientos' },
-          { code: 'REV-002', description: 'Pintura plástica lisa mate blanca en paredes y techos', qty: 135.00, unit: 'm²', status: 'Pendiente AI', category: 'Revestimientos' },
-          { code: 'INS-001', description: 'Modificación y ampliación de puntos de luz y enchufes', qty: 12.00, unit: 'ud', status: 'Pendiente AI', category: 'Instalaciones' }
-        ];
-      }
-
-      setBudgetItems(simulatedItems);
+      setExtractedPlan(simulatedPlan);
+      setSelectedDwellingIdx(0);
+      mapDwellingToBudget(simulatedPlan.dwellings[0]);
       setStatus('success');
     }, 1500);
   };
@@ -138,7 +169,6 @@ export const Dashboard: React.FC = () => {
     }
   };
 
-  // Drag & drop handlers
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
   };
@@ -186,15 +216,15 @@ export const Dashboard: React.FC = () => {
               <span className="material-symbols-outlined text-secondary" data-icon="straighten">straighten</span>
             </div>
             <div className="text-display font-display text-primary">
-              {budgetItems.length > 0 
-                ? budgetItems.filter(item => item.unit === 'm²' && item.category === 'Revestimientos').reduce((acc, item) => acc + item.qty, 0).toFixed(1)
+              {extractedPlan 
+                ? extractedPlan.dwellings[selectedDwellingIdx].total_area_m2.toFixed(1)
                 : '107'
               }
               <span className="text-headline-md font-headline-md"> m²</span>
             </div>
             <div className="mt-xs text-body-sm font-body-sm text-on-surface-variant flex items-center gap-xs">
               <span className="material-symbols-outlined text-[16px] text-on-secondary-fixed-variant" data-icon="info">info</span>
-              {budgetItems.length > 0 ? 'Extraído dinámicamente de plano' : 'Verificado por topografía láser'}
+              {extractedPlan ? 'Superficie de la vivienda seleccionada' : 'Verificado por topografía láser'}
             </div>
           </div>
           <div className="bg-white border border-outline-variant p-lg rounded-xl shadow-sm hover:shadow-md transition-shadow">
@@ -220,7 +250,7 @@ export const Dashboard: React.FC = () => {
                 </div>
                 <h3 className="text-title-sm font-title-sm text-on-surface">AI Scanning: Extracción de Planos</h3>
               </div>
-              <span className="bg-secondary-container text-on-secondary-container text-label-md font-label-md px-sm py-xs rounded-full">GEMINI 2.0</span>
+              <span className="bg-secondary-container text-on-secondary-container text-label-md font-label-md px-sm py-xs rounded-full">GEMINI 3.5</span>
             </div>
             
             {status === 'idle' || status === 'error' ? (
@@ -258,11 +288,34 @@ export const Dashboard: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Dwelling Selector & Scope Focus */}
+      {extractedPlan && extractedPlan.dwellings.length > 0 && (
+        <div className="bg-white border border-outline-variant p-md rounded-xl shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-md">
+          <div className="flex items-center gap-sm">
+            <span className="material-symbols-outlined text-secondary text-[24px]" data-icon="home_work">home_work</span>
+            <div>
+              <p className="text-label-md font-label-md text-on-surface-variant">VIVIENDA SELECCIONADA</p>
+              <h4 className="text-title-sm font-title-sm text-on-surface">Focalizar presupuesto en una unidad del plano</h4>
+            </div>
+          </div>
+          <select 
+            value={selectedDwellingIdx}
+            onChange={(e) => handleDwellingChange(Number(e.target.value))}
+            className="border border-outline-variant rounded-lg p-sm text-body-md bg-surface font-bold text-primary focus:outline-none focus:ring-2 focus:ring-secondary w-full sm:w-auto"
+          >
+            {extractedPlan.dwellings.map((dwelling, idx) => (
+              <option key={idx} value={idx}>{dwelling.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
       
       <AIPreview 
         items={budgetItems} 
         onClear={() => {
           setBudgetItems([]);
+          setExtractedPlan(null);
           setStatus('idle');
           setUploadedFile(null);
         }} 
