@@ -16,4 +16,4 @@
 - [x] Task: Expose API Endpoints df83a25
     - [ ] Write API integration tests
     - [ ] Implement FastAPI routers for budgets in `backend/app/api/`
-- [ ] Task: Conductor - User Manual Verification 'Phase 3: API Integration' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 3: API Integration' (Protocol in workflow.md) [checkpoint: 1181f93]
