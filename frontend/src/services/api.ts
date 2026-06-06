@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://127.0.0.1:8000'; // Target local FastAPI backend
+const API_BASE_URL = 'https://refurbishment-backend-21328141426.europe-southwest1.run.app'; // Live Google Cloud Run backend
 
 export interface BudgetItem {
   code: string;
