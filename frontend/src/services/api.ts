@@ -1,3 +1,5 @@
+import { auth } from './firebase';
+
 const API_BASE_URL = 'https://refurbishment-backend-21328141426.europe-southwest1.run.app'; // Live Google Cloud Run backend
 
 export interface BudgetItem {
@@ -42,16 +44,28 @@ export interface ExtractedPlan {
   general_notes?: string;
 }
 
+// Helper to get authorization headers dynamically from Firebase Auth
+const getAuthHeaders = async (baseHeaders: Record<string, string> = {}): Promise<Record<string, string>> => {
+  const headers = { ...baseHeaders };
+  const user = auth.currentUser;
+  if (user) {
+    const token = await user.getIdToken();
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
+};
+
 // 1. Upload file to backend
 export const uploadAsset = async (file: File): Promise<{ filename: string; gcs_uri: string } | null> => {
   const formData = new FormData();
   formData.append('file', file);
 
   try {
+    const headers = await getAuthHeaders();
     const response = await fetch(`${API_BASE_URL}/upload-asset`, {
       method: 'POST',
       body: formData,
-      // Firebase auth token would be passed here in production headers: { 'Authorization': 'Bearer ...' }
+      headers: headers,
     });
 
     if (!response.ok) {
@@ -68,11 +82,10 @@ export const uploadAsset = async (file: File): Promise<{ filename: string; gcs_u
 // 2. Trigger AI preview parsing
 export const previewBlueprint = async (gcsUri: string, mimeType: string): Promise<ExtractedPlan | null> => {
   try {
+    const headers = await getAuthHeaders({ 'Content-Type': 'application/json' });
     const response = await fetch(`${API_BASE_URL}/api/ai/preview`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: headers,
       body: JSON.stringify({ gcs_uri: gcsUri, mime_type: mimeType }),
     });
 
@@ -90,11 +103,10 @@ export const previewBlueprint = async (gcsUri: string, mimeType: string): Promis
 // 3. Save finalized budget items to Firestore
 export const saveBudget = async (items: BudgetItem[]): Promise<boolean> => {
   try {
+    const headers = await getAuthHeaders({ 'Content-Type': 'application/json' });
     const response = await fetch(`${API_BASE_URL}/api/budget/save`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: headers,
       body: JSON.stringify({ items }),
     });
     
