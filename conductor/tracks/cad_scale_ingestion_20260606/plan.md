@@ -1,13 +1,13 @@
 # Implementation Plan: CAD Vector & Scale Ingestion
 
 ## Phase 1: Backend DWG/DXF Ingestion and Scale Resolution
-- [ ] Task: Implement DWG-to-DXF converter
-    - [ ] Install LibreDWG or build a utility to convert binary `.dwg` to ASCII `.dxf` in the backend container.
-    - [ ] Write backend unit tests verifying that both file types are parsed successfully.
-- [ ] Task: Parse CAD Sizing and Scale Metadata
-    - [ ] Read `$INSUNITS` and `$DIMLFAC` variables from drawing headers using `ezdxf`.
-    - [ ] Implement mathematical conversion utility to calculate length in millimeters/meters and closed areas in m².
-    - [ ] Write Pytest unit tests confirming exact conversions for different units (mm, cm, m).
+- [x] Task: Implement DWG-to-DXF converter
+    - [x] Install LibreDWG or build a utility to convert binary `.dwg` to ASCII `.dxf` in the backend container.
+    - [x] Write backend unit tests verifying that both file types are parsed successfully.
+- [x] Task: Parse CAD Sizing and Scale Metadata
+    - [x] Read `$INSUNITS` and `$DIMLFAC` variables from drawing headers using `ezdxf`.
+    - [x] Implement mathematical conversion utility to calculate length in millimeters/meters and closed areas in m².
+    - [x] Write Pytest unit tests confirming exact conversions for different units (mm, cm, m).
 - [ ] Task: Conductor - User Manual Verification 'Phase 1: Backend DWG/DXF Ingestion and Scale Resolution' (Protocol in workflow.md)
 
 ## Phase 2: Geometry-to-Semantic Aggregator & Gemini Feeding
