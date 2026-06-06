@@ -12,7 +12,7 @@
     - [ ] Write mock tests for the `google-genai` integration
     - [ ] Implement the `AIParsingService` in `backend/app/services/ai_parser.py` using Gemini Multimodal for images and PDFs
     - [ ] Define the structured JSON schema expected from the model (Rooms, Walls, Windows, Material annotations)
-- [ ] Task: Conductor - User Manual Verification 'Phase 2: Gemini Parsing Engine' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 2: Gemini Parsing Engine' (Protocol in workflow.md) [checkpoint: 3a40b85]
 
 ## Phase 3: CAD Fallback Research & Preview Endpoint
 - [ ] Task: Expose Preview Endpoint
