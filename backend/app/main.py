@@ -104,9 +104,13 @@ async def upload_asset(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail="Invalid file type. Only JPG, PNG, PDF, and DXF are allowed.")
 
     try:
-        bucket = storage_client.bucket(BUCKET_NAME)
-        blob = bucket.blob(file.filename)
-        blob.upload_from_file(file.file, content_type=file.content_type)
-        return {"filename": file.filename, "gcs_uri": f"gs://{BUCKET_NAME}/{file.filename}"}
+        if storage_client:
+            bucket = storage_client.bucket(BUCKET_NAME)
+            blob = bucket.blob(file.filename)
+            blob.upload_from_file(file.file, content_type=file.content_type)
+            return {"filename": file.filename, "gcs_uri": f"gs://{BUCKET_NAME}/{file.filename}"}
+        else:
+            print(f"Warning: GCP Storage not initialized. Simulating upload for {file.filename}")
+            return {"filename": file.filename, "gcs_uri": f"gs://{BUCKET_NAME}/{file.filename}", "simulated": True}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
