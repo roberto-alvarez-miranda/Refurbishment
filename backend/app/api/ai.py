@@ -1,3 +1,4 @@
+from typing import List
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from app.services.ai_parser import AIParsingService
@@ -18,5 +19,24 @@ def preview_blueprint(request: PreviewBlueprintRequest, user: dict = Depends(get
         return extracted_plan
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+class ChatRequest(BaseModel):
+    message: str
+    plan_context: ExtractedPlan
+    history: List[dict] = [] # Optional chat history placeholder
+
+class ChatResponse(BaseModel):
+    response: str
+
+from typing import List
+
+@router.post("/chat", response_model=ChatResponse)
+def chat_with_plan(request: ChatRequest, user: dict = Depends(get_current_user)):
+    parser = AIParsingService(user)
+    try:
+        response_text = parser.chat_with_context(request.message, request.plan_context, request.history)
+        return ChatResponse(response=response_text)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

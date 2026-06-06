@@ -125,7 +125,10 @@ class AIParsingService:
             "For each distinct dwelling, extract:\n"
             "1. Name and total area in m².\n"
             "2. Estancias (rooms) aggregated by category ('cocina', 'baño', 'pasillo', 'dormitorio', 'salón'). Sum their areas and perimeters.\n"
-            "3. Estimation of internal partition walls in linear meters (ml) and exterior facade walls in ml.\n\n"
+            "3. **Proposed Materials**: ONLY extract materials (such as 'parqué', 'baldosas', 'yeso') if they are explicitly mentioned "
+            "in the text annotations or visible annotations for those spaces. DO NOT invent or assume materials (like tiles for bathroom or wood for bedrooms) "
+            "unless there is explicit evidence in the file. If no materials are mentioned, leave `proposed_materials` empty so they can be defined in the UI.\n"
+            "4. Estimation of internal partition walls in linear meters (ml) and exterior facade walls in ml.\n\n"
             "Respond strictly with a structured JSON matching the provided schema."
         )
 
@@ -172,7 +175,11 @@ class AIParsingService:
             "For layers representing partitions (like 'Tabiques', 'Paredes', 'Partition', 'Muros_Interiores'), calculate the linear meters (ml) of partition walls. "
             "Because lines in CAD are drawn on both sides of a wall, divide the line lengths by 2. Distribute the total partition walls reasonably between the dwellings "
             "based on their size (e.g. approx 0.8 to 1.2 ml of partition wall per m² of dwelling area).\n"
-            "4. **CRITICAL: Noise Filtering**: You MUST completely ignore and filter out all drawing metadata, title blocks, layout notes, dates, "
+            "4. **No Hardcoded Materials**: ONLY populate `proposed_materials` if they are explicitly mentioned or annotated in the `text_annotations` "
+            "for that room coordinates (e.g. text containing 'gres', 'mármol', 'parqué', 'pintura plástica'). DO NOT assume or invent materials (such as tiles "
+            "for bathroom or plaster for ceiling) unless there is direct evidence in the texts or layers. If there is no evidence, leave `proposed_materials` as an empty list "
+            "so the user can define it on the frontend.\n"
+            "5. **CRITICAL: Noise Filtering**: You MUST completely ignore and filter out all drawing metadata, title blocks, layout notes, dates, "
             "and company text annotations. For example, DO NOT generate dwellings or rooms for: 'VERSO ESPACIO RESIDENCIAL S.L.', "
             "'ENERO 2022', 'CALLE GENERAL ELORZA', 'PLANTA TIPO', 'LEVANTAMIENTO DE EDIFICIO...', 'Phase 1', 'ESTADO ACTUAL', "
             "or scale indicators. These are not parts of a home!\n\n"
@@ -195,3 +202,33 @@ class AIParsingService:
         )
 
         return response.parsed
+
+    def chat_with_context(self, message: str, plan_context: ExtractedPlan, history: list = []) -> str:
+        """
+        Maintains a context-aware conversation with Gemini 3.5 Flash about the current extracted plan.
+        """
+        if not self.client:
+            raise RuntimeError("Gemini client is not initialized.")
+
+        # Serialize Pydantic plan context
+        context_str = json.dumps(plan_context.model_dump(), indent=2)
+
+        system_instruction = (
+            "You are an expert architect, quantity surveyor, and cost estimator. "
+            "You are assisting a homeowner/developer with their refurbishment project based on a CAD floor plan. "
+            "Answer any questions they have about the dwellings, rooms, dimensions, areas, partition wall lengths, or material choices "
+            "accurately, professionally, and concisely in Spanish.\n\n"
+            "### ESTADO ACTUAL DEL PROYECTO (PLAN CONTEXT):\n"
+            f"{context_str}"
+        )
+
+        logger.info("Initiating conversational chat with Gemini 3.5 Flash...")
+        response = self.client.models.generate_content(
+            model=self.model_id,
+            contents=message,
+            config=types.GenerateContentConfig(
+                system_instruction=system_instruction,
+                temperature=0.7
+            )
+        )
+        return response.text

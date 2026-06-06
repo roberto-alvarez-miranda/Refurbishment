@@ -15,6 +15,7 @@ export interface EstanciaSummary {
   type: string;
   area_m2: number;
   perimeter_m: number;
+  proposed_materials: string[];
   count: number;
 }
 
@@ -91,7 +92,31 @@ export const previewBlueprint = async (gcsUri: string, mimeType: string): Promis
   }
 };
 
-// 3. Save finalized budget items to Firestore
+// 3. Context-aware AI Chat Assistant
+export const chatWithPlan = async (message: string, planContext: ExtractedPlan): Promise<string | null> => {
+  try {
+    const headers = await getAuthHeaders({ 'Content-Type': 'application/json' });
+    const response = await fetch(`${API_BASE_URL}/api/ai/chat`, {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify({ message, plan_context: planContext }),
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      const errMsg = errData.detail || `Chat failed with status: ${response.status}`;
+      throw new Error(errMsg);
+    }
+
+    const data = await response.json();
+    return data.response;
+  } catch (error) {
+    console.error('Error during AI chat:', error);
+    return null;
+  }
+};
+
+// 4. Save finalized budget items to Firestore
 export const saveBudget = async (items: BudgetItem[]): Promise<boolean> => {
   try {
     const headers = await getAuthHeaders({ 'Content-Type': 'application/json' });
