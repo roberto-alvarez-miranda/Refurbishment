@@ -18,6 +18,6 @@
 - [x] Task: Expose Preview Endpoint 16eba3a
     - [ ] Write integration tests for the `/api/ai/preview` endpoint
     - [ ] Implement the endpoint that takes a Google Cloud Storage URI, runs the `AIParsingService`, and returns the uncommitted structured JSON.
-- [ ] Task: DXF Research spike (Timeboxed)
+- [x] Task: DXF Research spike (Timeboxed) 61efe11
     - [ ] Write a brief spike document detailing the viability of `ezdxf` vs AutoCAD MCP vs converting DXF to image for Gemini.
 - [ ] Task: Conductor - User Manual Verification 'Phase 3: CAD Fallback Research & Preview Endpoint' (Protocol in workflow.md)
