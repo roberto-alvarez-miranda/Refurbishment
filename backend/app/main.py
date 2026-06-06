@@ -103,8 +103,17 @@ ALLOWED_MIME_TYPES = {
 async def upload_asset(file: UploadFile = File(...), user: dict = Depends(get_current_user)):
     """Sube planos, imágenes o PDFs al bucket de Cloud Storage"""
     ext = os.path.splitext(file.filename)[1].lower()
-    if ext not in ALLOWED_EXTENSIONS or file.content_type not in ALLOWED_MIME_TYPES:
-        raise HTTPException(status_code=400, detail="Invalid file type. Only JPG, PNG, PDF, and DXF are allowed.")
+    print(f"DEBUG: upload_asset received file='{file.filename}', ext='{ext}', content_type='{file.content_type}'")
+    
+    # Accept if the extension is valid, OR if the MIME type is in our allowed list
+    is_valid_ext = ext in ALLOWED_EXTENSIONS
+    is_valid_mime = file.content_type in ALLOWED_MIME_TYPES or file.content_type == "image/jpg" or file.content_type == "application/x-pdf"
+    
+    if not (is_valid_ext and (is_valid_mime or not file.content_type)):
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Invalid file type. File '{file.filename}' (extension: '{ext}', MIME: '{file.content_type}') is not supported. Only JPG, PNG, PDF, and DXF are allowed."
+        )
 
     try:
         if storage_client:
