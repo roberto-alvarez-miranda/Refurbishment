@@ -34,4 +34,4 @@
     - [ ] Write tests ensuring impersonated credentials are created dynamically from decoded token claims
     - [ ] Modify `AIParsingService` to accept `user` credentials instead of using global defaults
     - [ ] Initialize the `google-genai` client using Vertex AI and the impersonated credentials
-- [ ] Task: Conductor - User Manual Verification 'Phase 5: Dynamic Service Account Impersonation' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 5: Dynamic Service Account Impersonation' (Protocol in workflow.md) [checkpoint: f983650]
