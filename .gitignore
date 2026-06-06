@@ -37,3 +37,6 @@ temp_blueprint.png
 stitch_reference_*.html
 verify_phase_2.py
 test_dxf_live.py
+.firebase/
+*firestore-debug.log
+
