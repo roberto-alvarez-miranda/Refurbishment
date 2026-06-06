@@ -18,6 +18,10 @@ from app.api.budget import router as budget_router
 from app.api.ai import router as ai_router
 from app.dependencies.auth import get_current_user
 
+import logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 app = FastAPI(title="Refurbishment API", version="1.0.0")
 
 # Permitir CORS desde el puerto de Vite local (habitualmente 5173)
@@ -103,11 +107,11 @@ ALLOWED_MIME_TYPES = {
 async def upload_asset(file: UploadFile = File(...), user: dict = Depends(get_current_user)):
     """Sube planos, imágenes o PDFs al bucket de Cloud Storage"""
     ext = os.path.splitext(file.filename)[1].lower()
-    print(f"DEBUG: upload_asset received file='{file.filename}', ext='{ext}', content_type='{file.content_type}'")
+    logger.warning(f"DEBUG UPLOAD: received file='{file.filename}', ext='{ext}', content_type='{file.content_type}', user='{user.get('uid')}'")
     
     # Accept if the extension is valid, OR if the MIME type is in our allowed list
     is_valid_ext = ext in ALLOWED_EXTENSIONS
-    is_valid_mime = file.content_type in ALLOWED_MIME_TYPES or file.content_type == "image/jpg" or file.content_type == "application/x-pdf"
+    is_valid_mime = file.content_type in ALLOWED_MIME_TYPES or file.content_type == "image/jpg" or file.content_type == "application/x-pdf" or file.content_type == "application/octet-stream"
     
     if not (is_valid_ext and (is_valid_mime or not file.content_type)):
         raise HTTPException(
