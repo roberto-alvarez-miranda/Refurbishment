@@ -14,8 +14,10 @@ from app.models.plan import ExtractedPlan, Room
 
 client = TestClient(app)
 
+@patch("app.dependencies.auth.auth.verify_id_token")
 @patch("app.api.ai.AIParsingService")
-def test_preview_blueprint_endpoint(mock_ai_service_class):
+def test_preview_blueprint_endpoint(mock_ai_service_class, mock_verify):
+    mock_verify.return_value = {"uid": "testuser"}
     # Setup mock parser instance
     mock_parser = MagicMock()
     mock_plan = ExtractedPlan(
@@ -30,7 +32,11 @@ def test_preview_blueprint_endpoint(mock_ai_service_class):
         "mime_type": "application/pdf"
     }
 
-    response = client.post("/api/ai/preview", json=payload)
+    response = client.post(
+        "/api/ai/preview", 
+        json=payload,
+        headers={"Authorization": "Bearer fake_token"}
+    )
     
     assert response.status_code == 200
     data = response.json()

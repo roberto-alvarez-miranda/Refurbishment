@@ -1,7 +1,7 @@
 import os
 from datetime import datetime
 from typing import List, Optional
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 try:
@@ -16,6 +16,7 @@ except (ImportError, TypeError) as e:
 
 from app.api.budget import router as budget_router
 from app.api.ai import router as ai_router
+from app.dependencies.auth import get_current_user
 
 app = FastAPI(title="Refurbishment API", version="1.0.0")
 
@@ -99,7 +100,7 @@ ALLOWED_MIME_TYPES = {
 }
 
 @app.post("/upload-asset")
-async def upload_asset(file: UploadFile = File(...)):
+async def upload_asset(file: UploadFile = File(...), user: dict = Depends(get_current_user)):
     """Sube planos, imágenes o PDFs al bucket de Cloud Storage"""
     ext = os.path.splitext(file.filename)[1].lower()
     if ext not in ALLOWED_EXTENSIONS or file.content_type not in ALLOWED_MIME_TYPES:
