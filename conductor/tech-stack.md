@@ -16,4 +16,4 @@
 - **Databases & Storage:** Firestore (NoSQL), BigQuery (Data warehouse/Analytics), Cloud Storage (Files/Blueprints)
 - **Backend as a Service:** Firebase (Auth, Hosting, etc.)
 - **Infrastructure as Code:** Terraform
-- **AI Integration:** Google GenAI SDK (Vertex AI / Gemini) for material searching, parametric estimations, and blueprint parsing (including Python ezdxf rasterization for .dxf support).
+- **AI Integration:** Google GenAI SDK (Vertex AI / Gemini) using Dynamic Service Account Impersonation for tenant isolation, material searching, parametric estimations, and blueprint parsing (including Python ezdxf rasterization for .dxf support).
