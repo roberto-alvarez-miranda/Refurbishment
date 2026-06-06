@@ -1,54 +1,53 @@
 import pytest
 from pydantic import ValidationError
-from app.models.budget import ConstructionUnit, ExecutionUnit, BudgetItem
+from app.models.budget import (
+    Resource, MeasurementLine, BudgetItem, Chapter, ProjectBudget, ResourceYield
+)
 
-def test_construction_unit_creation():
-    unit = ConstructionUnit(
-        id="cu-001",
-        code="ALB-01",
-        name="Tabique de ladrillo",
-        description="Muro de ladrillo hueco doble",
-        unit_type="m2",
-        base_price=15.50
+def test_resource_creation():
+    r = Resource(
+        id="res-001",
+        project_id="proj-001",
+        code="MO-01",
+        name="Peón",
+        resource_type="labor",
+        base_price=18.5
     )
-    assert unit.code == "ALB-01"
-    assert unit.unit_type == "m2"
-    assert unit.base_price == 15.50
+    assert r.code == "MO-01"
+    assert r.resource_type == "labor"
 
-def test_construction_unit_invalid_price():
-    with pytest.raises(ValidationError):
-        ConstructionUnit(
-            id="cu-002",
-            code="ALB-02",
-            name="Tabique",
-            unit_type="m2",
-            base_price=-5.0 # Invalid negative price
-        )
-
-def test_execution_unit_creation():
-    unit = ExecutionUnit(
-        id="eu-001",
-        construction_unit_id="cu-001",
-        quantity=12.5,
-        quality_multiplier=1.2
+def test_measurement_line_calculation():
+    ml = MeasurementLine(
+        id="ml-001",
+        units=2.0,
+        length=3.0,
+        width=1.5,
+        height=1.0
     )
-    assert unit.quantity == 12.5
-    assert unit.quality_multiplier == 1.2
-    assert unit.calculated_price == 0.0 # Should be 0 until calculated or explicitly set if it's a property
+    # 2 * 3 * 1.5 * 1 = 9.0
+    assert ml.subtotal == 9.0
 
-def test_budget_item_creation():
+def test_budget_item_total():
     item = BudgetItem(
-        id="bi-001",
-        name="Baño Principal",
-        execution_units=[
-            ExecutionUnit(
-                id="eu-001",
-                construction_unit_id="cu-001",
-                quantity=10.0,
-                quality_multiplier=1.0
-            )
-        ]
+        id="item-001",
+        chapter_id="chap-001",
+        project_id="proj-001",
+        code="ALB-01",
+        name="Tabique",
+        unit_type="m2",
+        calculated_unit_price=15.0,
+        calculated_quantity=9.0
     )
-    assert item.name == "Baño Principal"
-    assert len(item.execution_units) == 1
-    assert item.total_cost == 0.0 # Should be 0 until calculated
+    # 15.0 * 9.0 = 135.0
+    assert item.total_cost == 135.0
+
+def test_invalid_resource_price():
+    with pytest.raises(ValidationError):
+        Resource(
+            id="res-002",
+            project_id="proj-001",
+            code="MAT-01",
+            name="Ladrillo",
+            resource_type="material",
+            base_price=-5.0 # Must be >= 0
+        )
