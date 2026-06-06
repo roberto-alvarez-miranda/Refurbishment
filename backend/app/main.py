@@ -4,9 +4,15 @@ from typing import List, Optional
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from google.cloud import bigquery
-from google.cloud import storage
-from google.cloud import firestore
+try:
+    from google.cloud import bigquery
+    from google.cloud import storage
+    from google.cloud import firestore
+except (ImportError, TypeError) as e:
+    print(f"Advertencia: No se pudieron cargar los módulos de Google Cloud: {e}")
+    bigquery = None
+    storage = None
+    firestore = None
 
 from app.api.budget import router as budget_router
 
@@ -30,11 +36,15 @@ BUCKET_NAME = f"{PROJECT_ID}-refurbishment-assets"
 
 # Inicializar clientes de GCP de forma perezosa
 try:
-    bq_client = bigquery.Client(project=PROJECT_ID)
-    db = firestore.Client(project=PROJECT_ID, database="(default)")
-    storage_client = storage.Client(project=PROJECT_ID)
+    if bigquery and firestore and storage:
+        bq_client = bigquery.Client(project=PROJECT_ID)
+        db = firestore.Client(project=PROJECT_ID, database="(default)")
+        storage_client = storage.Client(project=PROJECT_ID)
+    else:
+        bq_client, db, storage_client = None, None, None
 except Exception as e:
     print(f"Advertencia: No se pudieron inicializar clientes GCP: {e}")
+    bq_client, db, storage_client = None, None, None
 
 class BudgetItem(BaseModel):
     item_id: str
