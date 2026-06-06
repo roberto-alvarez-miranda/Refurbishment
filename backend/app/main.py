@@ -15,6 +15,7 @@ except (ImportError, TypeError) as e:
     firestore = None
 
 from app.api.budget import router as budget_router
+from app.api.ai import router as ai_router
 
 app = FastAPI(title="Refurbishment API", version="1.0.0")
 
@@ -28,6 +29,7 @@ app.add_middleware(
 )
 
 app.include_router(budget_router, prefix="/api/budget", tags=["budget"])
+app.include_router(ai_router, prefix="/api/ai", tags=["ai"])
 
 PROJECT_ID = os.getenv("GOOGLE_CLOUD_PROJECT", "app-reformia")
 REGION = "europe-southwest1"
