@@ -1,7 +1,7 @@
 # Implementation Plan: Blueprint & Image Ingestion
 
 ## Phase 1: Upload Endpoint Expansion
-- [~] Task: Expand /upload-asset endpoint to support PDF and DXF
+- [x] Task: Expand /upload-asset endpoint to support PDF and DXF 7d51fcd
     - [ ] Write Tests for validating new MIME types in the upload endpoint
     - [ ] Implement file extension and MIME type validation in `backend/app/main.py`
     - [ ] Ensure files are correctly stored in the GCP bucket
