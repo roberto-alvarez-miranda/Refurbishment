@@ -7,7 +7,7 @@
 - [x] Task: Conductor - User Manual Verification 'Phase 1: Data Modeling and Setup' (Protocol in workflow.md) [checkpoint: f70bcf4]
 
 ## Phase 2: Core Calculation Engine
-- [ ] Task: Implement Budget Calculator Service
+- [x] Task: Implement Budget Calculator Service 84a28a0
     - [ ] Write Tests for Calculation Logic (Parametric unit rates)
     - [ ] Implement Calculator logic in `backend/app/services/calculator.py`
 - [ ] Task: Conductor - User Manual Verification 'Phase 2: Core Calculation Engine' (Protocol in workflow.md)
