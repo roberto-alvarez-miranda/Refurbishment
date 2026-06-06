@@ -85,9 +85,24 @@ def get_budget_items():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".pdf", ".dxf"}
+ALLOWED_MIME_TYPES = {
+    "image/jpeg",
+    "image/png",
+    "application/pdf",
+    "application/dxf",
+    "image/vnd.dxf",
+    "application/x-autocad",
+    "application/x-dxf"
+}
+
 @app.post("/upload-asset")
 async def upload_asset(file: UploadFile = File(...)):
     """Sube planos, imágenes o PDFs al bucket de Cloud Storage"""
+    ext = os.path.splitext(file.filename)[1].lower()
+    if ext not in ALLOWED_EXTENSIONS or file.content_type not in ALLOWED_MIME_TYPES:
+        raise HTTPException(status_code=400, detail="Invalid file type. Only JPG, PNG, PDF, and DXF are allowed.")
+
     try:
         bucket = storage_client.bucket(BUCKET_NAME)
         blob = bucket.blob(file.filename)
