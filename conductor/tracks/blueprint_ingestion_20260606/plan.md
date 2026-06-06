@@ -15,7 +15,7 @@
 - [x] Task: Conductor - User Manual Verification 'Phase 2: Gemini Parsing Engine' (Protocol in workflow.md) [checkpoint: 3a40b85]
 
 ## Phase 3: CAD Fallback Research & Preview Endpoint
-- [ ] Task: Expose Preview Endpoint
+- [x] Task: Expose Preview Endpoint 16eba3a
     - [ ] Write integration tests for the `/api/ai/preview` endpoint
     - [ ] Implement the endpoint that takes a Google Cloud Storage URI, runs the `AIParsingService`, and returns the uncommitted structured JSON.
 - [ ] Task: DXF Research spike (Timeboxed)
