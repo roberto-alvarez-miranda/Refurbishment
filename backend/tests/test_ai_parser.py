@@ -4,8 +4,12 @@ import app.services.ai_parser
 from app.services.ai_parser import AIParsingService
 from app.models.plan import ExtractedPlan, Room, MaterialAnnotation
 
-@patch("app.services.ai_parser.client")
-def test_parse_blueprint(mock_client):
+@patch("app.services.ai_parser.genai.Client")
+def test_parse_blueprint(mock_genai_client_class):
+    # Setup mock client
+    mock_client = MagicMock()
+    mock_genai_client_class.return_value = mock_client
+    
     # Setup mock response
     mock_response = MagicMock()
     # Pydantic parses the generated response, so we mock the parsed object
@@ -25,8 +29,6 @@ def test_parse_blueprint(mock_client):
 
     # Test the service
     parser = AIParsingService()
-    # Need to manually inject the mock client since the module level one was None
-    app.services.ai_parser.client = mock_client
     
     result = parser.parse_blueprint("gs://my-bucket/plan.pdf", "application/pdf")
     
