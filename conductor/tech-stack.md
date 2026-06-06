@@ -17,3 +17,8 @@
 - **Backend as a Service:** Firebase (Auth, Hosting, etc.)
 - **Infrastructure as Code:** Terraform
 - **AI Integration:** Google GenAI SDK (Vertex AI / Gemini) using Dynamic Service Account Impersonation for tenant isolation, material searching, parametric estimations, and blueprint parsing (including Python ezdxf rasterization for .dxf support).
+
+## Testing & Quality Assurance
+- **Frontend E2E:** Playwright (Desktop Chromium)
+- **Backend Testing:** Pytest (Unit & Integration)
+- **Database Mocking:** Firebase Local Emulator Suite (Firestore, Auth)
