@@ -20,4 +20,4 @@
     - [ ] Implement the endpoint that takes a Google Cloud Storage URI, runs the `AIParsingService`, and returns the uncommitted structured JSON.
 - [x] Task: DXF Research spike (Timeboxed) 61efe11
     - [ ] Write a brief spike document detailing the viability of `ezdxf` vs AutoCAD MCP vs converting DXF to image for Gemini.
-- [ ] Task: Conductor - User Manual Verification 'Phase 3: CAD Fallback Research & Preview Endpoint' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 3: CAD Fallback Research & Preview Endpoint' (Protocol in workflow.md) [checkpoint: 4865732]
