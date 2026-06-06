@@ -28,3 +28,10 @@
     - [ ] Create a dependency in FastAPI to decode Firebase ID tokens and extract the user's context
     - [ ] Protect the `/upload-asset` and `/api/ai/preview` endpoints with this dependency
 - [x] Task: Conductor - User Manual Verification 'Phase 4: Authentication & IAM Delegation' (Protocol in workflow.md) [checkpoint: 98dd15b]
+
+## Phase 5: Dynamic Service Account Impersonation
+- [x] Task: Implement Identity Platform to GCP IAM impersonation 164085d
+    - [ ] Write tests ensuring impersonated credentials are created dynamically from decoded token claims
+    - [ ] Modify `AIParsingService` to accept `user` credentials instead of using global defaults
+    - [ ] Initialize the `google-genai` client using Vertex AI and the impersonated credentials
+- [x] Task: Conductor - User Manual Verification 'Phase 5: Dynamic Service Account Impersonation' (Protocol in workflow.md) [checkpoint: f983650]
