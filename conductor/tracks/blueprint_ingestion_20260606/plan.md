@@ -27,4 +27,4 @@
     - [ ] Write integration tests for protected routes
     - [ ] Create a dependency in FastAPI to decode Firebase ID tokens and extract the user's context
     - [ ] Protect the `/upload-asset` and `/api/ai/preview` endpoints with this dependency
-- [ ] Task: Conductor - User Manual Verification 'Phase 4: Authentication & IAM Delegation' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 4: Authentication & IAM Delegation' (Protocol in workflow.md) [checkpoint: 98dd15b]
