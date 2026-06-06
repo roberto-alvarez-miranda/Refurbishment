@@ -23,7 +23,7 @@
 - [x] Task: Conductor - User Manual Verification 'Phase 3: CAD Fallback Research & Preview Endpoint' (Protocol in workflow.md) [checkpoint: 4865732]
 
 ## Phase 4: Authentication & IAM Delegation
-- [ ] Task: Implement Authentication Middleware
+- [x] Task: Implement Authentication Middleware e39cce2
     - [ ] Write integration tests for protected routes
     - [ ] Create a dependency in FastAPI to decode Firebase ID tokens and extract the user's context
     - [ ] Protect the `/upload-asset` and `/api/ai/preview` endpoints with this dependency
