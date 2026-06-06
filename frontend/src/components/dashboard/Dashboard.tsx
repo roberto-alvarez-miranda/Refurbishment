@@ -22,8 +22,9 @@ export const Dashboard: React.FC = () => {
     // 1. Upload the asset to GCS
     const uploadRes = await uploadAsset(file);
     if (!uploadRes) {
-      setStatus('error');
-      setProgressMsg('Error al subir el archivo a Cloud Storage. Asegúrate de que el backend está corriendo.');
+      console.warn('Local backend offline. Falling back to frontend simulation.');
+      setProgressMsg('Backend local no detectado o bloqueado por HTTPS/CORS. Iniciando simulación local de procesamiento de IA...');
+      simulateExtraction(file.name);
       return;
     }
 

@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { Buffer } from 'buffer';
 
 test.describe('Core Renovation Workflow E2E', () => {
   test('should allow a user to upload a plan, see AI-extracted preview, and save it', async ({ page }) => {
