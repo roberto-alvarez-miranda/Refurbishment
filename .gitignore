@@ -30,3 +30,10 @@ override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
+
+# Temporary & Scratchpad files
+.coverage
+temp_blueprint.png
+stitch_reference_*.html
+verify_phase_2.py
+test_dxf_live.py
