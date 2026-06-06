@@ -8,7 +8,7 @@
 - [x] Task: Conductor - User Manual Verification 'Phase 1: Upload Endpoint Expansion' (Protocol in workflow.md) [checkpoint: addf9ca]
 
 ## Phase 2: Gemini Parsing Engine
-- [ ] Task: Implement AI Processing Service
+- [x] Task: Implement AI Processing Service e24f878
     - [ ] Write mock tests for the `google-genai` integration
     - [ ] Implement the `AIParsingService` in `backend/app/services/ai_parser.py` using Gemini Multimodal for images and PDFs
     - [ ] Define the structured JSON schema expected from the model (Rooms, Walls, Windows, Material annotations)
