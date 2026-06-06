@@ -8,6 +8,8 @@ from google.cloud import bigquery
 from google.cloud import storage
 from google.cloud import firestore
 
+from app.api.budget import router as budget_router
+
 app = FastAPI(title="Refurbishment API", version="1.0.0")
 
 # Permitir CORS desde el puerto de Vite local (habitualmente 5173)
@@ -18,6 +20,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(budget_router, prefix="/api/budget", tags=["budget"])
 
 PROJECT_ID = os.getenv("GOOGLE_CLOUD_PROJECT", "app-reformia")
 REGION = "europe-southwest1"

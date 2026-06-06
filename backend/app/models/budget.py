@@ -1,5 +1,5 @@
 from typing import List, Dict, Optional, Literal
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, computed_field
 
 # Represents a variable or parameter used in parametric measurements
 class Parameter(BaseModel):
@@ -29,6 +29,7 @@ class MeasurementLine(BaseModel):
     width: float = 1.0
     height: float = 1.0
     
+    @computed_field
     @property
     def subtotal(self) -> float:
         return self.units * self.length * self.width * self.height
@@ -48,6 +49,7 @@ class BudgetItem(BaseModel):
     calculated_unit_price: float = 0.0
     calculated_quantity: float = 0.0
     
+    @computed_field
     @property
     def total_cost(self) -> float:
         return self.calculated_unit_price * self.calculated_quantity
