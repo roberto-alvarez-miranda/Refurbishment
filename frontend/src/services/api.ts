@@ -153,3 +153,23 @@ export const saveBudget = async (items: BudgetItem[]): Promise<boolean> => {
     return false;
   }
 };
+
+// 5. Retrieve saved budget items from Firestore (for Planning/Planificación Screen)
+export const listBudgetItems = async (): Promise<BudgetItem[]> => {
+  try {
+    const headers = await getAuthHeaders();
+    const response = await fetch(`${API_BASE_URL}/api/budget/list`, {
+      method: 'GET',
+      headers: headers,
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch budget items list');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error listing budget items:', error);
+    return [];
+  }
+};

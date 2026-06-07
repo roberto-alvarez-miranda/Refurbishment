@@ -40,3 +40,12 @@ def chat_with_plan(request: ChatRequest, user: dict = Depends(get_current_user))
         return ChatResponse(response=response_text)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/acae-search")
+def search_acae_catalog(q: str, limit: int = 15, user: dict = Depends(get_current_user)):
+    from app.services.acae_search import search_acae
+    try:
+        results = search_acae(q, limit)
+        return {"results": results}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

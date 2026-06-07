@@ -122,7 +122,12 @@ class AIParsingService:
             "You are an expert architect and cost estimator. Carefully analyze the provided floor plan, blueprint, or room image. "
             "Our focus in this phase is to capture highly detailed room-by-room measurements to start a refurbishment project in Presto/CYPE style.\n\n"
             
-            "Identify each distinct housing unit/dwelling (e.g. 'Vivienda Tipo A', 'Vivienda Tipo B') on the sheet. "
+            "Identify each distinct housing unit/dwelling (e.g. 'Vivienda Tipo A', 'Vivienda Tipo B') on the sheet.\n"
+            "CRITICAL: If a dwelling or apartment is detected, you MUST NOT leave its `estancias` list empty. If the explicit room divisions "
+            "or tabique boundaries are blurry, missing, or hard to read from the image, you MUST estimate and generate a realistic, standard "
+            "residential layout proportionate to the total area (for example, a 100 m² apartment should have: 1 salón of ~25m², 1 cocina of ~10m², "
+            "2-3 dormitorios of ~12-15m², and 1-2 baños of ~5-7m²).\n\n"
+            
             "For each distinct dwelling, extract:\n"
             "1. Name and total area in m².\n"
             "2. Estancias (rooms) aggregated by category ('cocina', 'baño', 'pasillo', 'dormitorio', 'salón'). Sum their areas and perimeters.\n"
@@ -179,6 +184,9 @@ class AIParsingService:
             "1. **Identify Real Dwellings**: Cluster rooms and texts into distinct housing units. Name them clearly (e.g., 'Vivienda Tipo A - 59.80m²', 'Vivienda Tipo B - 101.09m²').\n"
             "2. **Group Estancias by Category & Location**: Inside each dwelling, aggregate all room areas (m2) and perimeters (ml) by their type/category: "
             "'cocina', 'baño', 'pasillo', 'dormitorio', 'salón'.\n"
+            "CRITICAL FALLBACK: Under no circumstances should a dwelling have an empty `estancias` list. If the `closed_boundaries` "
+            "list is empty or lacks clear rooms, you MUST use the `text_annotations` coordinate overlaps or estimate a realistic "
+            "residential layout baseline proportionate to the dwelling's total area (e.g. 1 Salon, 1 Cocina, 1 Baño, and Bedrooms) so the user always has a starting baseline to edit.\n"
             "3. **Populate Tabiques & Sanitarios**: Allocate exact partition segments and sanitary items directly to their respective estancias.\n"
             "4. **No Hardcoded Materials**: ONLY populate `proposed_materials` if they are explicitly mentioned or annotated in the `text_annotations` "
             "for that room coordinates. If there is no evidence, leave `proposed_materials` as an empty list so the user can define it on the frontend.\n"

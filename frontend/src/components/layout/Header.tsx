@@ -1,8 +1,14 @@
 import { useEffect, useState } from 'react';
 import { auth, loginWithGoogle, logout } from '../../services/firebase';
 import type { User } from 'firebase/auth';
+import type { AppView } from '../../App';
 
-export const Header: React.FC = () => {
+interface HeaderProps {
+  currentView: AppView;
+  onViewChange: (view: AppView) => void;
+}
+
+export const Header: React.FC<HeaderProps> = ({ currentView, onViewChange }) => {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
@@ -30,10 +36,38 @@ export const Header: React.FC = () => {
         <h1 className="text-headline-md font-headline-md font-bold text-on-surface">Reformia — Gestor de Reformas</h1>
       </div>
       <div className="flex items-center gap-lg">
+        {/* Navigation Tabs - Connected Dynamically! */}
         <div className="hidden md:flex gap-md">
-          <button className="text-secondary font-bold border-b-2 border-secondary px-xs py-base text-body-md font-body-md">Estado Actual</button>
-          <button className="text-on-surface-variant hover:bg-surface-container-low transition-colors px-xs py-base text-body-md font-body-md">Planificación</button>
-          <button className="text-on-surface-variant hover:bg-surface-container-low transition-colors px-xs py-base text-body-md font-body-md">Ejecución</button>
+          <button 
+            onClick={() => onViewChange('estado-actual')}
+            className={`px-xs py-base text-body-md font-body-md transition-all ${
+              currentView === 'estado-actual' 
+                ? 'text-secondary font-bold border-b-2 border-secondary' 
+                : 'text-on-surface-variant hover:bg-surface-container-low'
+            }`}
+          >
+            Estado Actual
+          </button>
+          <button 
+            onClick={() => onViewChange('planificacion')}
+            className={`px-xs py-base text-body-md font-body-md transition-all ${
+              currentView === 'planificacion' 
+                ? 'text-secondary font-bold border-b-2 border-secondary' 
+                : 'text-on-surface-variant hover:bg-surface-container-low'
+            }`}
+          >
+            Planificación
+          </button>
+          <button 
+            onClick={() => onViewChange('ejecucion')}
+            className={`px-xs py-base text-body-md font-body-md transition-all ${
+              currentView === 'ejecucion' 
+                ? 'text-secondary font-bold border-b-2 border-secondary' 
+                : 'text-on-surface-variant hover:bg-surface-container-low'
+            }`}
+          >
+            Ejecución
+          </button>
         </div>
         
         <div className="flex items-center gap-sm">

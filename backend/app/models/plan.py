@@ -18,7 +18,7 @@ class EstanciaSummary(BaseModel):
     name: Optional[str] = None # e.g., "Dormitorio Principal", "Baño Suite", "Cocina Americana"
     area_m2: float             # m² de esta estancia específica
     perimeter_m: float         # perímetro (ml) para rodapiés o acabados
-    height_m: float            # Altura libre de la estancia en metros
+    height_m: float = 2.50     # Altura libre de la estancia en metros (default a 2.50m)
     tabiques: List[Tabique] = [] # Listado de tabiques individuales de esta estancia
     sanitarios: List[Sanitario] = [] # Listado de aparatos sanitarios/instalaciones en esta estancia
     proposed_materials: List[str] = [] # Materiales específicos detectados

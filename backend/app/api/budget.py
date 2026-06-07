@@ -71,3 +71,23 @@ def save_budget(request: SaveBudgetRequest):
         return {"status": "success", "saved_count": len(request.items)}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to save to Firestore: {str(e)}")
+
+@router.get("/list", response_model=List[FlatBudgetItem])
+def list_budget_items():
+    if not firestore:
+        raise HTTPException(status_code=500, detail="Firestore client not available")
+        
+    project_id = os.getenv("GOOGLE_CLOUD_PROJECT", "app-reformia")
+    try:
+        db = firestore.Client(project=project_id, database="(default)")
+        collection_ref = db.collection("budget_components")
+        docs = collection_ref.stream()
+        
+        items = []
+        for doc in docs:
+            data = doc.to_dict()
+            items.append(FlatBudgetItem(**data))
+            
+        return items
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to list budget items from Firestore: {str(e)}")
