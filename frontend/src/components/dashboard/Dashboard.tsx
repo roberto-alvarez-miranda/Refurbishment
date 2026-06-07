@@ -84,48 +84,61 @@ export const Dashboard: React.FC = () => {
   const mapDwellingToBudget = (dwelling: Dwelling) => {
     const items: BudgetItem[] = [];
     
-    // 1. Demolition: ml of partition walls
-    if (dwelling.partition_walls_ml > 0) {
-      items.push({
-        code: 'DEM-001',
-        description: `Demolición de tabiquería interior de ladrillo o placas de yeso laminado`,
-        qty: dwelling.partition_walls_ml,
-        unit: 'ml',
-        status: 'Pendiente AI',
-        category: 'Demolición'
-      });
-    }
-
-    // 2. Flooring / Revestimientos: Grouped by estancia type
+    // 1. Flooring & Demolition Grouped and Mapped room-by-room (Estancia by Estancia)
     dwelling.estancias.forEach((estancia, idx) => {
-      // Use dynamic material extracted by Gemini, otherwise default to "Pendiente de definición"
+      const codeSuffix = idx + 1;
+      const roomLabel = estancia.name || estancia.type.toUpperCase();
+
+      // A. Demolition: Specific to this estancia
+      if (estancia.partition_walls_ml > 0) {
+        items.push({
+          code: `DEM-0${codeSuffix}`,
+          description: `Demolición de tabiquería interior en ${roomLabel} (Largo estimado: ${estancia.partition_walls_ml.toFixed(1)} ml)`,
+          qty: estancia.partition_walls_ml,
+          unit: 'ml',
+          status: 'Pendiente AI',
+          category: 'Demolición'
+        });
+      }
+
+      // B. Flooring: Specific to this estancia
+      const isWetRoom = ["cocina", "baño", "toilet", "aseo"].includes(estancia.type.toLowerCase());
       const floorMaterial = estancia.proposed_materials && estancia.proposed_materials.length > 0 
         ? estancia.proposed_materials.join(', ')
         : 'Pendiente de definición (clic para escribir)';
-      
-      const codeSuffix = idx + 1;
 
       items.push({
         code: `REV-0${codeSuffix}`,
-        description: `Pavimentado con ${floorMaterial} en zona de ${estancia.type.toUpperCase()}`,
+        description: `Pavimentado con ${floorMaterial} en ${roomLabel}`,
         qty: estancia.area_m2,
         unit: 'm²',
         status: 'Pendiente AI',
         category: 'Revestimientos'
       });
 
-      // Wall painting/covering
-      items.push({
-        code: `REV-1${codeSuffix}`,
-        description: `Enlucido y pintura de paredes/techos para zona de ${estancia.type.toUpperCase()}`,
-        qty: parseFloat((estancia.perimeter_m * 2.50).toFixed(2)), // Perimeter * height
-        unit: 'm²',
-        status: 'Pendiente AI',
-        category: 'Revestimientos'
-      });
+      // C. Wall Finishes: Specific to this estancia (assume 2.5m ceiling height)
+      if (isWetRoom) {
+        items.push({
+          code: `REV-1${codeSuffix}`,
+          description: `Alicatado de paredes con material cerámico en ${roomLabel}`,
+          qty: parseFloat((estancia.perimeter_m * 2.50).toFixed(2)),
+          unit: 'm²',
+          status: 'Pendiente AI',
+          category: 'Revestimientos'
+        });
+      } else {
+        items.push({
+          code: `REV-1${codeSuffix}`,
+          description: `Pintura plástica lisa mate lavable color blanco en paredes de ${roomLabel}`,
+          qty: parseFloat((estancia.perimeter_m * 2.50).toFixed(2)),
+          unit: 'm²',
+          status: 'Pendiente AI',
+          category: 'Revestimientos'
+        });
+      }
     });
 
-    // 3. Plumbing / Instalaciones
+    // 2. Plumbing / Instalaciones
     const hasKitchenOrBath = dwelling.estancias.some(e => ["cocina", "baño"].includes(e.type.toLowerCase()));
     if (hasKitchenOrBath) {
       items.push({
@@ -181,24 +194,26 @@ export const Dashboard: React.FC = () => {
             name: "Vivienda A - Planta Tipo (su 59.80 m²)",
             total_area_m2: 59.80,
             estancias: [
-              { type: "salón", area_m2: 22.40, perimeter_m: 19.50, proposed_materials: ["Tarima flotante de pino laminada"], count: 1 },
-              { type: "dormitorio", area_m2: 24.10, perimeter_m: 20.00, proposed_materials: [], count: 2 },
-              { type: "cocina", area_m2: 8.50, perimeter_m: 11.20, proposed_materials: ["Gres porcelánico gris oscuro"], count: 1 },
-              { type: "baño", area_m2: 4.80, perimeter_m: 8.80, proposed_materials: ["Azulejo esmaltado mate"], count: 1 }
+              { type: "salón", name: "Salón Comedor", area_m2: 22.40, perimeter_m: 19.50, partition_walls_ml: 12.50, proposed_materials: ["Tarima flotante de pino laminada"], count: 1 },
+              { type: "dormitorio", name: "Dormitorio Principal", area_m2: 12.50, perimeter_m: 14.00, partition_walls_ml: 8.50, proposed_materials: [], count: 1 },
+              { type: "dormitorio", name: "Dormitorio Secundario", area_m2: 11.60, perimeter_m: 13.50, partition_walls_ml: 7.20, proposed_materials: [], count: 1 },
+              { type: "cocina", name: "Cocina", area_m2: 8.50, perimeter_m: 11.20, partition_walls_ml: 8.50, proposed_materials: ["Gres porcelánico gris oscuro"], count: 1 },
+              { type: "baño", name: "Baño Completo", area_m2: 4.80, perimeter_m: 8.80, partition_walls_ml: 5.80, proposed_materials: ["Azulejo esmaltado mate"], count: 1 }
             ],
-            partition_walls_ml: 42.50,
             exterior_walls_ml: 24.10
           },
           {
             name: "Vivienda B - Planta Tipo (su 101.09 m²)",
             total_area_m2: 101.09,
             estancias: [
-              { type: "salón", area_m2: 38.20, perimeter_m: 26.00, proposed_materials: [], count: 1 },
-              { type: "dormitorio", area_m2: 38.50, perimeter_m: 34.00, proposed_materials: [], count: 3 },
-              { type: "cocina", area_m2: 14.20, perimeter_m: 16.50, proposed_materials: ["Porcelánico rectificado rectilíneo"], count: 1 },
-              { type: "baño", area_m2: 10.19, perimeter_m: 13.80, proposed_materials: ["Mosaico cerámico vitrificado"], count: 2 }
+              { type: "salón", name: "Salón Familiar", area_m2: 38.20, perimeter_m: 26.00, partition_walls_ml: 18.20, proposed_materials: [], count: 1 },
+              { type: "dormitorio", name: "Dormitorio Suite", area_m2: 15.50, perimeter_m: 16.00, partition_walls_ml: 11.00, proposed_materials: [], count: 1 },
+              { type: "dormitorio", name: "Dormitorio 2", area_m2: 12.00, perimeter_m: 13.80, partition_walls_ml: 8.80, proposed_materials: [], count: 1 },
+              { type: "dormitorio", name: "Dormitorio 3", area_m2: 11.00, perimeter_m: 13.20, partition_walls_ml: 8.50, proposed_materials: [], count: 1 },
+              { type: "cocina", name: "Cocina Office", area_m2: 14.20, perimeter_m: 16.50, partition_walls_ml: 11.50, proposed_materials: ["Porcelánico rectificado rectilíneo"], count: 1 },
+              { type: "baño", name: "Baño Suite", area_m2: 5.20, perimeter_m: 9.20, partition_walls_ml: 6.00, proposed_materials: ["Mosaico cerámico vitrificado"], count: 1 },
+              { type: "baño", name: "Aseo Invitados", area_m2: 4.99, perimeter_m: 9.00, partition_walls_ml: 5.50, proposed_materials: [], count: 1 }
             ],
-            partition_walls_ml: 65.80,
             exterior_walls_ml: 38.50
           }
         ],

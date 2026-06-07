@@ -25,8 +25,7 @@ def test_preview_blueprint_endpoint(mock_ai_service_class, mock_verify):
             Dwelling(
                 name="Vivienda A",
                 total_area_m2=65.0,
-                estancias=[EstanciaSummary(type="cocina", area_m2=10.0, perimeter_m=12.0)],
-                partition_walls_ml=35.0,
+                estancias=[EstanciaSummary(type="cocina", area_m2=10.0, perimeter_m=12.0, partition_walls_ml=8.5)],
                 exterior_walls_ml=15.0
             )
         ],

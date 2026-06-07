@@ -118,17 +118,16 @@ class AIParsingService:
 
         prompt = (
             "You are an expert architect and cost estimator. Carefully analyze the provided floor plan, blueprint, or room image. "
-            "Our focus in this phase is to capture structured data to start a refurbishment project. "
-            "A floor plan sheet can contain multiple dwellings/apartments (viviendas). You MUST identify each distinct "
-            "housing unit/dwelling (e.g. 'Vivienda Tipo A', 'Vivienda Tipo B') and group the rooms and areas for each unit.\n\n"
+            "Our focus in this phase is to capture structured room-by-room data to start a refurbishment project in Presto/CYPE style.\n\n"
             
+            "Identify each distinct housing unit/dwelling (e.g. 'Vivienda Tipo A', 'Vivienda Tipo B') on the sheet. "
             "For each distinct dwelling, extract:\n"
             "1. Name and total area in m².\n"
             "2. Estancias (rooms) aggregated by category ('cocina', 'baño', 'pasillo', 'dormitorio', 'salón'). Sum their areas and perimeters.\n"
-            "3. **Proposed Materials**: ONLY extract materials (such as 'parqué', 'baldosas', 'yeso') if they are explicitly mentioned "
-            "in the text annotations or visible annotations for those spaces. DO NOT invent or assume materials (like tiles for bathroom or wood for bedrooms) "
-            "unless there is explicit evidence in the file. If no materials are mentioned, leave `proposed_materials` empty so they can be defined in the UI.\n"
-            "4. Estimation of internal partition walls in linear meters (ml) and exterior facade walls in ml.\n\n"
+            "3. **Partition Walls per Estancia (ml)**: Calculate/estimate the exact linear meters (ml) of partition walls specifically associated "
+            "with each estancia (rather than a lump sum for the whole house). For example, a bathroom typically has 6-8 ml of surrounding partition walls to demolish or build.\n"
+            "4. **Proposed Materials**: ONLY extract materials if they are explicitly mentioned. Otherwise, leave it empty.\n"
+            "5. Estimation of exterior facade walls in ml.\n\n"
             "Respond strictly with a structured JSON matching the provided schema."
         )
 
@@ -148,7 +147,7 @@ class AIParsingService:
 
     def _synthesize_cad_data_with_gemini(self, raw_cad_data: dict) -> ExtractedPlan:
         """
-        Feeds raw CAD coordinates and texts to Gemini 3.5 Flash to clean noise, match rooms semantically, 
+        Feeds raw CAD coordinates and texts to Gemini 2.5 Flash to clean noise, match rooms semantically, 
         and output a perfect high-fidelity ExtractedPlan.
         """
         if not self.client:
@@ -158,31 +157,26 @@ class AIParsingService:
             "You are an expert architect, quantity surveyor, and cost estimator. We have extracted raw vector data, "
             "line lengths per layer, and text annotations from an architectural CAD (DXF/DWG) floor plan.\n\n"
             
-            "Our focus in this phase is to capture structured data to start a refurbishment project.\n\n"
+            "Our focus in this phase is to capture structured data to start a refurbishment project matching Presto/CYPE standards.\n\n"
             
-            "### CRITICAL UNDERSTANDING:\n"
-            "A floor plan sheet can contain multiple distinct dwellings/apartments (viviendas) on a single floor. "
-            "You MUST cluster the extracted rooms, texts, and line lengths into their respective distinct housing units (Dwellings/Viviendas). "
-            "For example, if you see annotations like 'S.U. viv. 1: 59.80 m2' and 'S.U. viv. 2: 101.09 m2', these are two separate apartments! "
-            "Group the rooms, bathrooms, and corridors belonging to each apartment separately under its own 'Dwelling' object.\n\n"
+            "### CRITICAL UNDERSTANDING (PRESTO/CYPE COMPLIANCE):\n"
+            "In professional estimating software like Presto or CYPE, measurements are structured room-by-room (by estancia). "
+            "Estimators DO NOT demolish all partition walls in one single lump sum. Instead, you must estimate/allocate the "
+            "linear meters (ml) of partition walls (`partition_walls_ml`) SPECIFICALLY for each individual estancia. "
+            "For example, a Cocina (kitchen) might have 8.5 ml of partitions, a Baño (bathroom) 6.2 ml, and a Bedroom 12.0 ml.\n\n"
             
             "### RULES:\n"
             "1. **Identify Real Dwellings**: Cluster rooms and texts into distinct housing units. Name them clearly (e.g., 'Vivienda Tipo A - 59.80m²', 'Vivienda Tipo B - 101.09m²').\n"
-            "2. **Group Estancias by Category**: Inside each dwelling, aggregate all room areas (m2) and perimeters (ml) by their type/category: "
-            "'cocina', 'baño', 'pasillo', 'dormitorio', 'salón'. For example, if a dwelling has 3 bedrooms, return a single 'dormitorio' category with "
-            "count=3, and the sum of their areas and perimeters. Do NOT output raw coordinate tags or duplicate items!\n"
-            "3. **Estimate Partition Walls (ml)**: Look at the `layer_line_lengths_meters` in raw data. "
-            "For layers representing partitions (like 'Tabiques', 'Paredes', 'Partition', 'Muros_Interiores'), calculate the linear meters (ml) of partition walls. "
-            "Because lines in CAD are drawn on both sides of a wall, divide the line lengths by 2. Distribute the total partition walls reasonably between the dwellings "
-            "based on their size (e.g. approx 0.8 to 1.2 ml of partition wall per m² of dwelling area).\n"
+            "2. **Group Estancias by Category & Location**: Inside each dwelling, aggregate all room areas (m2) and perimeters (ml) by their type/category: "
+            "'cocina', 'baño', 'pasillo', 'dormitorio', 'salón'.\n"
+            "3. **Partition Walls per Estancia (ml)**: Analyze the `layer_line_lengths_meters` of partition layers. "
+            "Distribute these partition wall lengths (divided by 2 to account for double-line drawing) into each individual estancia under its `partition_walls_ml` field. "
+            "A standard room has approx. 0.6 to 1.2 ml of partition wall per m² of area. Ensure the sum of all rooms' `partition_walls_ml` matches the real partition lines of that unit.\n"
             "4. **No Hardcoded Materials**: ONLY populate `proposed_materials` if they are explicitly mentioned or annotated in the `text_annotations` "
-            "for that room coordinates (e.g. text containing 'gres', 'mármol', 'parqué', 'pintura plástica'). DO NOT assume or invent materials (such as tiles "
-            "for bathroom or plaster for ceiling) unless there is direct evidence in the texts or layers. If there is no evidence, leave `proposed_materials` as an empty list "
+            "for that room coordinates (e.g. text containing 'gres', 'mármol', 'parqué', 'pintura plástica'). If there is no evidence, leave `proposed_materials` as an empty list "
             "so the user can define it on the frontend.\n"
             "5. **CRITICAL: Noise Filtering**: You MUST completely ignore and filter out all drawing metadata, title blocks, layout notes, dates, "
-            "and company text annotations. For example, DO NOT generate dwellings or rooms for: 'VERSO ESPACIO RESIDENCIAL S.L.', "
-            "'ENERO 2022', 'CALLE GENERAL ELORZA', 'PLANTA TIPO', 'LEVANTAMIENTO DE EDIFICIO...', 'Phase 1', 'ESTADO ACTUAL', "
-            "or scale indicators. These are not parts of a home!\n\n"
+            "and company text annotations (e.g. 'VERSO ESPACIO RESIDENCIAL S.L.', 'ENERO 2022', 'CALLE GENERAL ELORZA', layouts, scale labels). These are not rooms!\n\n"
             
             "### RAW CAD DATA:\n"
             f"{json.dumps(raw_cad_data, indent=2)}\n\n"
@@ -205,7 +199,7 @@ class AIParsingService:
 
     def chat_with_context(self, message: str, plan_context: ExtractedPlan, history: list = []) -> str:
         """
-        Maintains a context-aware conversation with Gemini 3.5 Flash about the current extracted plan.
+        Maintains a context-aware conversation with Gemini 2.5 Flash about the current extracted plan.
         """
         if not self.client:
             raise RuntimeError("Gemini client is not initialized.")
@@ -216,7 +210,7 @@ class AIParsingService:
         system_instruction = (
             "You are an expert architect, quantity surveyor, and cost estimator. "
             "You are assisting a homeowner/developer with their refurbishment project based on a CAD floor plan. "
-            "Answer any questions they have about the dwellings, rooms, dimensions, areas, partition wall lengths, or material choices "
+            "Answer any questions they have about the dwellings, rooms, dimensions, areas, partition wall lengths per room, or material choices "
             "accurately, professionally, and concisely in Spanish.\n\n"
             "### ESTADO ACTUAL DEL PROYECTO (PLAN CONTEXT):\n"
             f"{context_str}"

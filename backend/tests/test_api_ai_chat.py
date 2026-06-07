@@ -10,7 +10,7 @@ sys.modules['google.cloud'] = MagicMock()
 import pytest
 from fastapi.testclient import TestClient
 from app.main import app
-from app.models.plan import ExtractedPlan, Dwelling
+from app.models.plan import ExtractedPlan, Dwelling, EstanciaSummary
 
 client = TestClient(app)
 
@@ -31,8 +31,16 @@ def test_chat_with_plan_endpoint(mock_ai_service_class, mock_verify):
                 {
                     "name": "Vivienda A",
                     "total_area_m2": 65.0,
-                    "estancias": [],
-                    "partition_walls_ml": 35.0,
+                    "estancias": [
+                        {
+                            "type": "cocina",
+                            "name": "Cocina",
+                            "area_m2": 10.0,
+                            "perimeter_m": 12.0,
+                            "partition_walls_ml": 8.5,
+                            "proposed_materials": []
+                        }
+                    ],
                     "exterior_walls_ml": 15.0
                 }
             ],

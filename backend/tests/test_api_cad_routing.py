@@ -21,8 +21,7 @@ def test_parse_blueprint_routing_dxf(mock_synth, mock_extract, mock_download):
             Dwelling(
                 name="Vivienda A",
                 total_area_m2=59.8,
-                estancias=[EstanciaSummary(type="cocina", area_m2=10.5, perimeter_m=12.0)],
-                partition_walls_ml=45.0,
+                estancias=[EstanciaSummary(type="cocina", area_m2=10.5, perimeter_m=12.0, partition_walls_ml=8.5)],
                 exterior_walls_ml=22.0
             )
         ],
@@ -53,8 +52,7 @@ def test_parse_blueprint_routing_dwg(mock_synth, mock_extract, mock_convert, moc
             Dwelling(
                 name="Vivienda B",
                 total_area_m2=101.0,
-                estancias=[EstanciaSummary(type="salón", area_m2=22.5, perimeter_m=18.0)],
-                partition_walls_ml=65.0,
+                estancias=[EstanciaSummary(type="salón", area_m2=22.5, perimeter_m=18.0, partition_walls_ml=12.0)],
                 exterior_walls_ml=35.0
             )
         ],

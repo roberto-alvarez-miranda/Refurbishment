@@ -18,8 +18,7 @@ def test_parse_blueprint(mock_genai_client_class):
             Dwelling(
                 name="Living Room",
                 total_area_m2=20.0,
-                estancias=[EstanciaSummary(type="salón", area_m2=20.0, perimeter_m=18.0)],
-                partition_walls_ml=15.0,
+                estancias=[EstanciaSummary(type="salón", area_m2=20.0, perimeter_m=18.0, partition_walls_ml=15.0)],
                 exterior_walls_ml=12.0
             )
         ],
