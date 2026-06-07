@@ -44,7 +44,7 @@ def test_ai_parser_impersonation(mock_genai_client, mock_impersonated_creds, moc
     mock_genai_client.assert_called_once_with(
         vertexai=True,
         project=expected_project,
-        location="europe-southwest1",
+        location="us-central1",
         credentials=mock_impersonated
     )
 

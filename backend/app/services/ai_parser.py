@@ -26,7 +26,7 @@ ALLOWED_MIME_TYPES = {
 
 class AIParsingService:
     def __init__(self, user: dict = None):
-        self.model_id = 'gemini-2.5-flash'
+        self.model_id = 'gemini-3.5-flash'
         self.client = None
         if user:
             service_account_email = user.get("service_account_email")
@@ -44,7 +44,7 @@ class AIParsingService:
                 self.client = genai.Client(
                     vertexai=True,
                     project=os.getenv("GOOGLE_CLOUD_PROJECT", "app-reformia"),
-                    location="europe-southwest1",
+                    location="us-central1",
                     credentials=impersonated_creds
                 )
             except Exception as e:
@@ -54,7 +54,7 @@ class AIParsingService:
                 self.client = genai.Client(
                     vertexai=True,
                     project=os.getenv("GOOGLE_CLOUD_PROJECT", "app-reformia"),
-                    location="europe-southwest1"
+                    location="us-central1"
                 )
             except Exception as e:
                 logger.warning(f"Failed to initialize fallback genai client: {e}")
