@@ -11,12 +11,28 @@ export interface BudgetItem {
   category: string;
 }
 
+export interface Tabique {
+  label: string;
+  length_m: number;
+  height_m: number;
+  area_m2: number;
+  material: string;
+}
+
+export interface Sanitario {
+  type: string;
+  count: number;
+  action: string;
+}
+
 export interface EstanciaSummary {
   type: string;
   name?: string;
   area_m2: number;
   perimeter_m: number;
-  partition_walls_ml: number;
+  height_m: number;
+  tabiques: Tabique[];
+  sanitarios: Sanitario[];
   proposed_materials: string[];
   count: number;
 }
@@ -25,7 +41,6 @@ export interface Dwelling {
   name: string;
   total_area_m2: number;
   estancias: EstanciaSummary[];
-  partition_walls_ml?: number;
   exterior_walls_ml: number;
 }
 

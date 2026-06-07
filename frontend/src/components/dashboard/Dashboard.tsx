@@ -83,35 +83,55 @@ export const Dashboard: React.FC = () => {
     ]);
   };
 
-  // Maps a single isolated Dwelling's data into standardized budget items
+  // Maps a single isolated Dwelling's data into standardized budget items (CYPE/Presto style!)
   const mapDwellingToBudget = (dwelling: Dwelling) => {
     const items: BudgetItem[] = [];
+    let demCount = 1;
+    let revCount = 1;
+    let insCount = 1;
     
-    // 1. Flooring & Demolition Grouped and Mapped room-by-room (Estancia by Estancia)
-    dwelling.estancias.forEach((estancia, idx) => {
-      const codeSuffix = idx + 1;
+    // Loop through each estancia to create room-by-room items
+    dwelling.estancias.forEach((estancia) => {
       const roomLabel = estancia.name || estancia.type.toUpperCase();
 
-      // A. Demolition: Specific to this estancia
-      if (estancia.partition_walls_ml > 0) {
-        items.push({
-          code: `DEM-0${codeSuffix}`,
-          description: `Demolición de tabiquería interior en ${roomLabel} (Largo estimado: ${estancia.partition_walls_ml.toFixed(1)} ml)`,
-          qty: estancia.partition_walls_ml,
-          unit: 'ml',
-          status: 'Pendiente AI',
-          category: 'Demolición'
+      // A. Demolition: Tabique by Tabique
+      if (estancia.tabiques && estancia.tabiques.length > 0) {
+        estancia.tabiques.forEach((tabique) => {
+          items.push({
+            code: `DEM-0${demCount++}`,
+            description: `Demolición de tabique interior en ${roomLabel}: ${tabique.label} (${tabique.length_m.toFixed(1)} ml x ${tabique.height_m.toFixed(2)} m de alto, m: ${tabique.material})`,
+            qty: tabique.area_m2, // Measured in m2 (length * height) as required!
+            unit: 'm²',
+            status: 'Pendiente AI',
+            category: 'Demolición'
+          });
         });
       }
 
-      // B. Flooring: Specific to this estancia
+      // B. Dismantling of Sanitary/Plumbing Fixtures (Desmontaje de sanitarios)
+      if (estancia.sanitarios && estancia.sanitarios.length > 0) {
+        estancia.sanitarios.forEach((sanitario) => {
+          if (sanitario.action.toLowerCase() === 'retirar') {
+            items.push({
+              code: `DEM-S0${demCount++}`,
+              description: `Desmontaje, retirada y transporte a vertedero de aparato: ${sanitario.type.toUpperCase()} en ${roomLabel}`,
+              qty: sanitario.count,
+              unit: 'ud',
+              status: 'Pendiente AI',
+              category: 'Demolición'
+            });
+          }
+        });
+      }
+
+      // C. Flooring: Specific to this estancia
       const isWetRoom = ["cocina", "baño", "toilet", "aseo"].includes(estancia.type.toLowerCase());
       const floorMaterial = estancia.proposed_materials && estancia.proposed_materials.length > 0 
         ? estancia.proposed_materials.join(', ')
         : 'Pendiente de definición (clic para escribir)';
 
       items.push({
-        code: `REV-0${codeSuffix}`,
+        code: `REV-0${revCount++}`,
         description: `Pavimentado con ${floorMaterial} en ${roomLabel}`,
         qty: estancia.area_m2,
         unit: 'm²',
@@ -119,40 +139,41 @@ export const Dashboard: React.FC = () => {
         category: 'Revestimientos'
       });
 
-      // C. Wall Finishes: Specific to this estancia (assume 2.5m ceiling height)
+      // D. Wall Finishes: Specific to this estancia (assume ceiling height is estancia.height_m)
+      const h = estancia.height_m || 2.50;
       if (isWetRoom) {
         items.push({
-          code: `REV-1${codeSuffix}`,
-          description: `Alicatado de paredes con material cerámico en ${roomLabel}`,
-          qty: parseFloat((estancia.perimeter_m * 2.50).toFixed(2)),
+          code: `REV-1${revCount++}`,
+          description: `Alicatado de paredes con material cerámico en ${roomLabel} (Altura: ${h.toFixed(2)} m)`,
+          qty: parseFloat((estancia.perimeter_m * h).toFixed(2)),
           unit: 'm²',
           status: 'Pendiente AI',
           category: 'Revestimientos'
         });
       } else {
         items.push({
-          code: `REV-1${codeSuffix}`,
-          description: `Pintura plástica lisa mate lavable color blanco en paredes de ${roomLabel}`,
-          qty: parseFloat((estancia.perimeter_m * 2.50).toFixed(2)),
+          code: `REV-1${revCount++}`,
+          description: `Pintura plástica lisa mate lavable color blanco en paredes de ${roomLabel} (Altura: ${h.toFixed(2)} m)`,
+          qty: parseFloat((estancia.perimeter_m * h).toFixed(2)),
           unit: 'm²',
           status: 'Pendiente AI',
           category: 'Revestimientos'
         });
       }
-    });
 
-    // 2. Plumbing / Instalaciones
-    const hasKitchenOrBath = dwelling.estancias.some(e => ["cocina", "baño"].includes(e.type.toLowerCase()));
-    if (hasKitchenOrBath) {
-      items.push({
-        code: 'INS-001',
-        description: 'Renovación integral de red de fontanería y tomas de agua fría/caliente',
-        qty: 1.00,
-        unit: 'ud',
-        status: 'Validado',
-        category: 'Instalaciones'
-      });
-    }
+      // E. Plumbing: Specific to this room/estancia (Fontanería por estancia)
+      const hasPlumbingFixtures = estancia.sanitarios && estancia.sanitarios.length > 0;
+      if (isWetRoom || hasPlumbingFixtures) {
+        items.push({
+          code: `INS-F0${insCount++}`,
+          description: `Instalación de red de fontanería, desagües y tomas de agua fría/caliente para ${roomLabel}`,
+          qty: 1.00,
+          unit: 'ud',
+          status: 'Validado',
+          category: 'Instalaciones'
+        });
+      }
+    });
 
     setBudgetItems(items);
   };
@@ -197,27 +218,68 @@ export const Dashboard: React.FC = () => {
             name: "Vivienda A - Planta Tipo (su 59.80 m²)",
             total_area_m2: 59.80,
             estancias: [
-              { type: "salón", name: "Salón Comedor", area_m2: 22.40, perimeter_m: 19.50, partition_walls_ml: 12.50, proposed_materials: ["Tarima flotante de pino laminada"], count: 1 },
-              { type: "dormitorio", name: "Dormitorio Principal", area_m2: 12.50, perimeter_m: 14.00, partition_walls_ml: 8.50, proposed_materials: [], count: 1 },
-              { type: "dormitorio", name: "Dormitorio Secundario", area_m2: 11.60, perimeter_m: 13.50, partition_walls_ml: 7.20, proposed_materials: [], count: 1 },
-              { type: "cocina", name: "Cocina", area_m2: 8.50, perimeter_m: 11.20, partition_walls_ml: 8.50, proposed_materials: ["Gres porcelánico gris oscuro"], count: 1 },
-              { type: "baño", name: "Baño Completo", area_m2: 4.80, perimeter_m: 8.80, partition_walls_ml: 5.80, proposed_materials: ["Azulejo esmaltado mate"], count: 1 }
+              { 
+                type: "salón", 
+                name: "Salón Comedor", 
+                area_m2: 22.40, 
+                perimeter_m: 19.50, 
+                height_m: 2.65,
+                tabiques: [
+                  { label: "Tabique divisorio con Dormitorio 1", length_m: 4.50, height_m: 2.65, area_m2: 11.92, material: "Pladur" },
+                  { label: "Tabique divisorio con Pasillo", length_m: 3.20, height_m: 2.65, area_m2: 8.48, material: "Ladrillo hueco" }
+                ],
+                sanitarios: [],
+                proposed_materials: ["Tarima flotante de pino laminada"], 
+                count: 1 
+              },
+              { 
+                type: "dormitorio", 
+                name: "Dormitorio Principal", 
+                area_m2: 12.50, 
+                perimeter_m: 14.00, 
+                height_m: 2.65,
+                tabiques: [
+                  { label: "Tabique de fachada interna", length_m: 3.80, height_m: 2.65, area_m2: 10.07, material: "Pladur" }
+                ],
+                sanitarios: [],
+                proposed_materials: [], 
+                count: 1 
+              },
+              { 
+                type: "cocina", 
+                name: "Cocina", 
+                area_m2: 8.50, 
+                perimeter_m: 11.20, 
+                height_m: 2.65,
+                tabiques: [
+                  { label: "Tabique divisorio con Salón", length_m: 4.10, height_m: 2.65, area_m2: 10.86, material: "Ladrillo hueco" }
+                ],
+                sanitarios: [
+                  { type: "fregadero", count: 1, action: "retirar" },
+                  { type: "caldera mural", count: 1, action: "retirar" }
+                ],
+                proposed_materials: ["Gres porcelánico gris oscuro"], 
+                count: 1 
+              },
+              { 
+                type: "baño", 
+                name: "Baño Completo", 
+                area_m2: 4.80, 
+                perimeter_m: 8.80, 
+                height_m: 2.55,
+                tabiques: [
+                  { label: "Tabique divisorio con Pasillo", length_m: 2.40, height_m: 2.55, area_m2: 6.12, material: "Ladrillo hueco" }
+                ],
+                sanitarios: [
+                  { type: "inodoro", count: 1, action: "retirar" },
+                  { type: "lavabo", count: 1, action: "retirar" },
+                  { type: "bañera", count: 1, action: "retirar" }
+                ],
+                proposed_materials: ["Azulejo esmaltado mate"], 
+                count: 1 
+              }
             ],
             exterior_walls_ml: 24.10
-          },
-          {
-            name: "Vivienda B - Planta Tipo (su 101.09 m²)",
-            total_area_m2: 101.09,
-            estancias: [
-              { type: "salón", name: "Salón Familiar", area_m2: 38.20, perimeter_m: 26.00, partition_walls_ml: 18.20, proposed_materials: [], count: 1 },
-              { type: "dormitorio", name: "Dormitorio Suite", area_m2: 15.50, perimeter_m: 16.00, partition_walls_ml: 11.00, proposed_materials: [], count: 1 },
-              { type: "dormitorio", name: "Dormitorio 2", area_m2: 12.00, perimeter_m: 13.80, partition_walls_ml: 8.80, proposed_materials: [], count: 1 },
-              { type: "dormitorio", name: "Dormitorio 3", area_m2: 11.00, perimeter_m: 13.20, partition_walls_ml: 8.50, proposed_materials: [], count: 1 },
-              { type: "cocina", name: "Cocina Office", area_m2: 14.20, perimeter_m: 16.50, partition_walls_ml: 11.50, proposed_materials: ["Porcelánico rectificado rectilíneo"], count: 1 },
-              { type: "baño", name: "Baño Suite", area_m2: 5.20, perimeter_m: 9.20, partition_walls_ml: 6.00, proposed_materials: ["Mosaico cerámico vitrificado"], count: 1 },
-              { type: "baño", name: "Aseo Invitados", area_m2: 4.99, perimeter_m: 9.00, partition_walls_ml: 5.50, proposed_materials: [], count: 1 }
-            ],
-            exterior_walls_ml: 38.50
           }
         ],
         general_notes: "Planos de planta del edificio General Elorza, 25."
@@ -229,7 +291,7 @@ export const Dashboard: React.FC = () => {
       setStatus('success');
       
       setChatMessages([
-        { role: 'assistant', text: `[MODO DEMO] He cargado los planos simulados para "${_filename}". Se han identificado 2 viviendas tipo (Vivienda A y B). Puedes preguntar lo que quieras en el chat sobre la distribución o materiales.` }
+        { role: 'assistant', text: `[MODO DEMO] He cargado los planos simulados para "${_filename}". Se han identificado 1 vivienda tipo. Puedes preguntar lo que quieras en el chat sobre la distribución o materiales.` }
       ]);
     }, 1500);
   };
@@ -517,7 +579,7 @@ export const Dashboard: React.FC = () => {
             />
           </div>
           
-          <div className="absolute bottom-4 bg-black/60 text-white/80 px-md py-sm rounded-full text-label-md font-label-md">
+          <div className="absolute bottom-4 bg-black/60 text-white/80 px-md py-sm rounded-full text-label-md font-label-md text-center">
             {uploadedFile} — Zoom ampliado de alta definición
           </div>
         </div>
