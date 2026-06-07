@@ -26,13 +26,12 @@ ALLOWED_MIME_TYPES = {
 
 class AIParsingService:
     def __init__(self, user: dict = None):
-        self.model_id = 'gemini-2.5-pro'
+        self.model_id = 'gemini-3.1-pro-preview'
         self.client = None
-        if user:
+        
+        # Only use impersonation if a service_account_email claim is explicitly present in the token
+        if user and user.get("service_account_email"):
             service_account_email = user.get("service_account_email")
-            if not service_account_email:
-                raise ValueError("Missing service_account_email claim in user token")
-            
             try:
                 source_creds, project_id = google.auth.default()
                 impersonated_creds = ImpersonatedCredentials(
@@ -44,18 +43,21 @@ class AIParsingService:
                 self.client = genai.Client(
                     vertexai=True,
                     project=os.getenv("GOOGLE_CLOUD_PROJECT", "app-reformia"),
-                    location="europe-southwest1",
+                    location="global",
                     credentials=impersonated_creds
                 )
+                logger.info(f"Initialized GenAI client with service account impersonation in location 'global' for: {service_account_email}")
             except Exception as e:
                 logger.warning(f"Failed to initialize genai client with impersonation: {e}")
         else:
+            # Fallback to standard Application Default Credentials (ADC) for demo/standard auth users
             try:
                 self.client = genai.Client(
                     vertexai=True,
                     project=os.getenv("GOOGLE_CLOUD_PROJECT", "app-reformia"),
-                    location="europe-southwest1"
+                    location="global"
                 )
+                logger.info("Initialized GenAI client in location 'global' using standard Application Default Credentials (ADC)")
             except Exception as e:
                 logger.warning(f"Failed to initialize fallback genai client: {e}")
 
@@ -138,7 +140,8 @@ class AIParsingService:
             contents=[file_part, prompt],
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
-                response_schema=ExtractedPlan
+                response_schema=ExtractedPlan,
+                thinking_config=types.ThinkingConfig(thinking_level="high")
             ),
         )
 
@@ -183,13 +186,14 @@ class AIParsingService:
             "Return the consolidated, clean multi-dwelling floor plan structured exactly as requested in the JSON schema."
         )
 
-        logger.info("Sending raw CAD metadata to Gemini 2.5 Pro for semantic multi-dwelling synthesis...")
+        logger.info("Sending raw CAD metadata to Gemini 3.1 Pro for semantic multi-dwelling synthesis...")
         response = self.client.models.generate_content(
             model=self.model_id,
             contents=prompt,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
-                response_schema=ExtractedPlan
+                response_schema=ExtractedPlan,
+                thinking_config=types.ThinkingConfig(thinking_level="high")
             ),
         )
 
@@ -214,12 +218,13 @@ class AIParsingService:
             f"{context_str}"
         )
 
-        logger.info("Initiating conversational chat with Gemini 2.5 Pro...")
+        logger.info("Initiating conversational chat with Gemini 3.1 Pro...")
         response = self.client.models.generate_content(
             model=self.model_id,
             contents=message,
             config=types.GenerateContentConfig(
-                system_instruction=system_instruction
+                system_instruction=system_instruction,
+                thinking_config=types.ThinkingConfig(thinking_level="medium")
             )
         )
         return response.text

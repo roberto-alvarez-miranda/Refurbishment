@@ -28,6 +28,7 @@ def test_parse_blueprint(mock_genai_client_class):
 
     # Test the service
     parser = AIParsingService()
+    assert parser.model_id == "gemini-3.1-pro-preview"
     
     result = parser.parse_blueprint("gs://my-bucket/plan.pdf", "application/pdf")
     

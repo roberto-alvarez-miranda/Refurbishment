@@ -13,8 +13,10 @@ export interface BudgetItem {
 
 export interface EstanciaSummary {
   type: string;
+  name?: string;
   area_m2: number;
   perimeter_m: number;
+  partition_walls_ml: number;
   proposed_materials: string[];
   count: number;
 }
@@ -23,7 +25,7 @@ export interface Dwelling {
   name: string;
   total_area_m2: number;
   estancias: EstanciaSummary[];
-  partition_walls_ml: number;
+  partition_walls_ml?: number;
   exterior_walls_ml: number;
 }
 

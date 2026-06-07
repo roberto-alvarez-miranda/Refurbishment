@@ -44,12 +44,15 @@ def test_ai_parser_impersonation(mock_genai_client, mock_impersonated_creds, moc
     mock_genai_client.assert_called_once_with(
         vertexai=True,
         project=expected_project,
-        location="europe-southwest1",
+        location="global",
         credentials=mock_impersonated
     )
 
-def test_ai_parser_impersonation_missing_claim():
-    # If the user doesn't have the claim, it should raise an error
+@patch("app.services.ai_parser.genai.Client")
+def test_ai_parser_impersonation_missing_claim(mock_genai_client):
+    # If the user doesn't have the claim, it should safely fall back to standard ADC
     user = {"uid": "testuser123"}
-    with pytest.raises(ValueError, match="Missing service_account_email claim in user token"):
-        AIParsingService(user=user)
+    parser = AIParsingService(user=user)
+    
+    assert parser.model_id == "gemini-3.1-pro-preview"
+    mock_genai_client.assert_called_once()
