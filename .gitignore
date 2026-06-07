@@ -40,4 +40,5 @@ test_dxf_live.py
 .firebase/
 *firestore-debug.log
 
-\n# Exclude Presto databases\n*.Presto
+# Exclude Presto databases
+*.Presto
