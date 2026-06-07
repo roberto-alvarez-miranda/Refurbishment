@@ -27,7 +27,7 @@ export const Header: React.FC = () => {
     <header className="sticky top-0 z-50 flex justify-between items-center px-lg py-sm w-full bg-surface border-b border-outline-variant">
       <div className="flex items-center gap-md">
         <span className="material-symbols-outlined text-primary" data-icon="construction">construction</span>
-        <h1 className="text-headline-md font-headline-md font-bold text-on-surface">107m2 Renovation Project</h1>
+        <h1 className="text-headline-md font-headline-md font-bold text-on-surface">Reformia — Gestor de Reformas</h1>
       </div>
       <div className="flex items-center gap-lg">
         <div className="hidden md:flex gap-md">

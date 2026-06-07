@@ -57,7 +57,7 @@ test.describe('Core Renovation Workflow E2E', () => {
     await page.goto('/');
 
     // 2. Verify static UI elements
-    await expect(page.locator('h1')).toContainText('107m2 Renovation Project');
+    await expect(page.locator('h1')).toContainText('Reformia — Gestor de Reformas');
     await expect(page.locator('text=No hay mediciones extraídas')).toBeVisible();
 
     // 3. Simulate file upload
