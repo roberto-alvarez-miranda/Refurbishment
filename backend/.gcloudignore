@@ -1,0 +1,33 @@
+# Exclude local virtual environments
+venv/
+.venv/
+env/
+.env/
+
+# Exclude git
+.git/
+.gitignore
+
+# Exclude cache and python compiled objects
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.coverage
+
+# Exclude large local data and drawing subdirectories
+cocina/
+*.Presto
+*.pdf
+*.dxf
+*.dwg
+*.png
+*.jpg
+*.jpeg
+*.mp4
+temp_blueprint.png
+
+# Exclude frontend artifacts if any leak in
+node_modules/
+dist/
