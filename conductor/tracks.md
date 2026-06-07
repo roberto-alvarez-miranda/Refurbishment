@@ -8,6 +8,9 @@ This file tracks all major tracks for the project. Each track has its own detail
 - [~] **Track: Implement vector and scale resolution for DWG & DXF CAD files, integrating ezdxf scale parsing and interactive scale calibration in the UI.**
   *Link: [./tracks/cad_scale_ingestion_20260606/](./tracks/cad_scale_ingestion_20260606/)*
 
+- [ ] **Track: Implement CYPE-style parametric qualities, individual wall-segment measurements, and dynamic Google Search material Specifier**
+  *Link: [./tracks/cype_agentic_flow_20260607/](./tracks/cype_agentic_flow_20260607/)*
+
 ---
 
 ## Archived Tracks
