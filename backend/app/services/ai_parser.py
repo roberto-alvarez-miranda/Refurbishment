@@ -26,7 +26,7 @@ ALLOWED_MIME_TYPES = {
 
 class AIParsingService:
     def __init__(self, user: dict = None):
-        self.model_id = 'gemini-3.5-flash'
+        self.model_id = 'gemini-2.5-pro'
         self.client = None
         if user:
             service_account_email = user.get("service_account_email")
@@ -44,7 +44,7 @@ class AIParsingService:
                 self.client = genai.Client(
                     vertexai=True,
                     project=os.getenv("GOOGLE_CLOUD_PROJECT", "app-reformia"),
-                    location="us-central1",
+                    location="europe-southwest1",
                     credentials=impersonated_creds
                 )
             except Exception as e:
@@ -54,7 +54,7 @@ class AIParsingService:
                 self.client = genai.Client(
                     vertexai=True,
                     project=os.getenv("GOOGLE_CLOUD_PROJECT", "app-reformia"),
-                    location="us-central1"
+                    location="europe-southwest1"
                 )
             except Exception as e:
                 logger.warning(f"Failed to initialize fallback genai client: {e}")
@@ -138,8 +138,7 @@ class AIParsingService:
             contents=[file_part, prompt],
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
-                response_schema=ExtractedPlan,
-                temperature=0.0
+                response_schema=ExtractedPlan
             ),
         )
 
@@ -184,14 +183,13 @@ class AIParsingService:
             "Return the consolidated, clean multi-dwelling floor plan structured exactly as requested in the JSON schema."
         )
 
-        logger.info("Sending raw CAD metadata to Gemini 3.5 Flash for semantic multi-dwelling synthesis...")
+        logger.info("Sending raw CAD metadata to Gemini 2.5 Pro for semantic multi-dwelling synthesis...")
         response = self.client.models.generate_content(
             model=self.model_id,
             contents=prompt,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
-                response_schema=ExtractedPlan,
-                temperature=0.0
+                response_schema=ExtractedPlan
             ),
         )
 
@@ -216,13 +214,12 @@ class AIParsingService:
             f"{context_str}"
         )
 
-        logger.info("Initiating conversational chat with Gemini 3.5 Flash...")
+        logger.info("Initiating conversational chat with Gemini 2.5 Pro...")
         response = self.client.models.generate_content(
             model=self.model_id,
             contents=message,
             config=types.GenerateContentConfig(
-                system_instruction=system_instruction,
-                temperature=0.7
+                system_instruction=system_instruction
             )
         )
         return response.text
