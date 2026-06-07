@@ -84,23 +84,30 @@ export const Dashboard: React.FC = () => {
   };
 
   // Maps a single isolated Dwelling's data into standardized budget items (CYPE/Presto style!)
-  const mapDwellingToBudget = (dwelling: Dwelling) => {
+  const mapDwellingToBudget = (dwelling?: Dwelling) => {
+    if (!dwelling) return;
     const items: BudgetItem[] = [];
     let demCount = 1;
     let revCount = 1;
     let insCount = 1;
     
+    // Safely fallback to empty array if estancias is undefined/null
+    const estancias = dwelling.estancias || [];
+
     // Loop through each estancia to create room-by-room items
-    dwelling.estancias.forEach((estancia) => {
-      const roomLabel = estancia.name || estancia.type.toUpperCase();
+    estancias.forEach((estancia) => {
+      if (!estancia) return;
+      const roomLabel = estancia.name || estancia.type?.toUpperCase() || "HABITACIÓN";
 
       // A. Demolition: Tabique by Tabique
-      if (estancia.tabiques && estancia.tabiques.length > 0) {
-        estancia.tabiques.forEach((tabique) => {
+      const tabiques = estancia.tabiques || [];
+      if (tabiques.length > 0) {
+        tabiques.forEach((tabique) => {
+          if (!tabique) return;
           items.push({
             code: `DEM-0${demCount++}`,
-            description: `Demolición de tabique interior en ${roomLabel}: ${tabique.label} (${tabique.length_m.toFixed(1)} ml x ${tabique.height_m.toFixed(2)} m de alto, m: ${tabique.material})`,
-            qty: tabique.area_m2, // Measured in m2 (length * height) as required!
+            description: `Demolición de tabique interior en ${roomLabel}: ${tabique.label} (${(tabique.length_m || 0).toFixed(1)} ml x ${(tabique.height_m || 0).toFixed(2)} m de alto, m: ${tabique.material || "Yeso/Ladrillo"})`,
+            qty: tabique.area_m2 || ((tabique.length_m || 0) * (tabique.height_m || 0)) || 0, // Measured in m2
             unit: 'm²',
             status: 'Pendiente AI',
             category: 'Demolición'
@@ -109,13 +116,15 @@ export const Dashboard: React.FC = () => {
       }
 
       // B. Dismantling of Sanitary/Plumbing Fixtures (Desmontaje de sanitarios)
-      if (estancia.sanitarios && estancia.sanitarios.length > 0) {
-        estancia.sanitarios.forEach((sanitario) => {
-          if (sanitario.action.toLowerCase() === 'retirar') {
+      const sanitarios = estancia.sanitarios || [];
+      if (sanitarios.length > 0) {
+        sanitarios.forEach((sanitario) => {
+          if (!sanitario) return;
+          if (sanitario.action?.toLowerCase() === 'retirar') {
             items.push({
               code: `DEM-S0${demCount++}`,
-              description: `Desmontaje, retirada y transporte a vertedero de aparato: ${sanitario.type.toUpperCase()} en ${roomLabel}`,
-              qty: sanitario.count,
+              description: `Desmontaje, retirada y transporte a vertedero de aparato: ${(sanitario.type || "sanitario").toUpperCase()} en ${roomLabel}`,
+              qty: sanitario.count || 1,
               unit: 'ud',
               status: 'Pendiente AI',
               category: 'Demolición'
@@ -125,7 +134,7 @@ export const Dashboard: React.FC = () => {
       }
 
       // C. Flooring: Specific to this estancia
-      const isWetRoom = ["cocina", "baño", "toilet", "aseo"].includes(estancia.type.toLowerCase());
+      const isWetRoom = ["cocina", "baño", "toilet", "aseo"].includes(estancia.type?.toLowerCase() || "");
       const floorMaterial = estancia.proposed_materials && estancia.proposed_materials.length > 0 
         ? estancia.proposed_materials.join(', ')
         : 'Pendiente de definición (clic para escribir)';
@@ -133,7 +142,7 @@ export const Dashboard: React.FC = () => {
       items.push({
         code: `REV-0${revCount++}`,
         description: `Pavimentado con ${floorMaterial} en ${roomLabel}`,
-        qty: estancia.area_m2,
+        qty: estancia.area_m2 || 0,
         unit: 'm²',
         status: 'Pendiente AI',
         category: 'Revestimientos'
@@ -145,7 +154,7 @@ export const Dashboard: React.FC = () => {
         items.push({
           code: `REV-1${revCount++}`,
           description: `Alicatado de paredes con material cerámico en ${roomLabel} (Altura: ${h.toFixed(2)} m)`,
-          qty: parseFloat((estancia.perimeter_m * h).toFixed(2)),
+          qty: parseFloat(((estancia.perimeter_m || 0) * h).toFixed(2)),
           unit: 'm²',
           status: 'Pendiente AI',
           category: 'Revestimientos'
@@ -154,7 +163,7 @@ export const Dashboard: React.FC = () => {
         items.push({
           code: `REV-1${revCount++}`,
           description: `Pintura plástica lisa mate lavable color blanco en paredes de ${roomLabel} (Altura: ${h.toFixed(2)} m)`,
-          qty: parseFloat((estancia.perimeter_m * h).toFixed(2)),
+          qty: parseFloat(((estancia.perimeter_m || 0) * h).toFixed(2)),
           unit: 'm²',
           status: 'Pendiente AI',
           category: 'Revestimientos'
@@ -162,7 +171,7 @@ export const Dashboard: React.FC = () => {
       }
 
       // E. Plumbing: Specific to this room/estancia (Fontanería por estancia)
-      const hasPlumbingFixtures = estancia.sanitarios && estancia.sanitarios.length > 0;
+      const hasPlumbingFixtures = sanitarios.length > 0;
       if (isWetRoom || hasPlumbingFixtures) {
         items.push({
           code: `INS-F0${insCount++}`,
@@ -350,7 +359,7 @@ export const Dashboard: React.FC = () => {
             </div>
             <div className="text-headline-lg sm:text-display font-display text-primary">
               {extractedPlan 
-                ? extractedPlan.dwellings[selectedDwellingIdx].total_area_m2.toFixed(1)
+                ? extractedPlan.dwellings[selectedDwellingIdx]?.total_area_m2.toFixed(1)
                 : '107'
               }
               <span className="text-title-sm sm:text-headline-md font-headline-md"> m²</span>
@@ -461,7 +470,7 @@ export const Dashboard: React.FC = () => {
                   </p>
                   <div className="inline-flex gap-xs bg-secondary-container text-on-secondary-container px-sm py-xs rounded text-label-xs sm:text-label-md font-label-md">
                     <span className="material-symbols-outlined text-[16px]" data-icon="check">check</span>
-                    Unidades: {extractedPlan.dwellings[selectedDwellingIdx].total_area_m2 > 0 ? "Metros" : "Milímetros"}
+                    Unidades: {extractedPlan.dwellings[selectedDwellingIdx]?.total_area_m2 > 0 ? "Metros" : "Milímetros"}
                   </div>
                 </div>
               )}
@@ -539,7 +548,7 @@ export const Dashboard: React.FC = () => {
             className="border border-outline-variant rounded-lg p-sm text-body-xs sm:text-body-md bg-surface font-bold text-primary focus:outline-none focus:ring-2 focus:ring-secondary w-full sm:w-auto cursor-pointer"
           >
             {extractedPlan.dwellings.map((dwelling, idx) => (
-              <option key={idx} value={idx}>{dwelling.name}</option>
+              <option key={idx} value={idx}>{dwelling?.name || `Vivienda ${idx + 1}`}</option>
             ))}
           </select>
         </div>
