@@ -41,3 +41,44 @@ def test_acae_search_endpoint(mock_bq_client_class, mock_verify):
     assert "results" in data
     assert len(data["results"]) == 1
     assert data["results"][0]["code"] == "ISOPOP"
+
+@patch("app.services.acae_search.bigquery.Client")
+def test_search_acae_service_direct(mock_bq_client_class):
+    """
+    Directly tests the search_acae service function logic.
+    """
+    from app.services.acae_search import search_acae
+    
+    mock_bq_client = MagicMock()
+    mock_job = MagicMock()
+    mock_row = MagicMock()
+    mock_row.code = "EQBDA___IDE1141"
+    mock_row.description = "Inodoro de porcelana vitrificada"
+    mock_row.unit = "ud"
+    mock_row.source = "ACAE"
+    
+    mock_job.result.return_value = [mock_row]
+    mock_bq_client.query.return_value = mock_job
+    mock_bq_client_class.return_value = mock_bq_client
+    
+    # Test valid query
+    results = search_acae("inodoro")
+    assert len(results) == 1
+    assert results[0]["code"] == "EQBDA___IDE1141"
+    assert results[0]["description"] == "Inodoro de porcelana vitrificada"
+
+@patch("app.services.acae_search.bigquery.Client")
+def test_search_acae_service_error_handling(mock_bq_client_class):
+    """
+    Verifies that search_acae handles database connection errors gracefully by returning [].
+    """
+    from app.services.acae_search import search_acae
+    
+    # Force query to raise an exception
+    mock_bq_client = MagicMock()
+    mock_bq_client.query.side_effect = Exception("BigQuery connection timeout")
+    mock_bq_client_class.return_value = mock_bq_client
+    
+    results = search_acae("ladrillo")
+    assert results == [] # Gracefully handled and returned empty list
+

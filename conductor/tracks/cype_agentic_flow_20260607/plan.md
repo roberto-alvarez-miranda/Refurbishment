@@ -4,8 +4,8 @@
 - [x] Task: Implement `GET /api/budget/cype-lookup` endpoint in FastAPI.
     - [x] Write unit tests verifying BC3 file download, HTTP routing, and FIEBDC-3 parsing (Red Phase).
     - [x] Implement `cype_parser.py` using `httpx` to download and parse dynamic `.bc3` files from CYPE's Asturias server.
-- [ ] Task: Implement robust BigQuery SQL parametrized search for ACAE.
-    - [ ] Refactor `acae_search.py` and write tests for SQL parameterized queries.
+- [x] Task: Implement robust BigQuery SQL parametrized search for ACAE.
+    - [x] Refactor `acae_search.py` and write tests for SQL parameterized queries.
 - [ ] Task: Conductor - User Manual Verification 'Phase 1: Backend CYPE BC3 Parser & BigQuery Integration' (Protocol in workflow.md)
 
 ## Phase 2: Frontend "Zoom" Quality Selector Popup Modal
