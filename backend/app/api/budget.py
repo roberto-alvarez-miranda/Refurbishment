@@ -91,3 +91,19 @@ def list_budget_items():
         return items
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to list budget items from Firestore: {str(e)}")
+
+@router.get("/cype-lookup")
+def cype_lookup(code: str, province: str = "asturias"):
+    """
+    Surgically queries and downloads the official FIEBDC-3/BC3 description and price
+    for a given parametric CYPE code in the specified Spanish province.
+    """
+    from app.services.cype_parser import fetch_and_parse_cype_bc3
+    
+    result = fetch_and_parse_cype_bc3(code, province)
+    if not result:
+        raise HTTPException(
+            status_code=404, 
+            detail=f"La partida '{code}' no fue encontrada en los archivos oficiales de CYPE para la provincia de '{province}'."
+        )
+    return result
