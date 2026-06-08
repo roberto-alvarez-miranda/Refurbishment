@@ -87,14 +87,14 @@ export const Dashboard: React.FC = () => {
     ]);
   };
 
-  // Maps a single isolated Dwelling's data into standardized budget items (CYPE/Presto style!)
-  // Includes strict de-duplication, structural safety filtering, and user refinement toggles!
+  // Maps a single isolated Dwelling's data into standardized Physical Entities (Unidades de Actuación!)
+  // Eliminates all budget action codes, demolition verbs, and price references from Phase 1.
   const mapDwellingToBudget = (dwelling?: Dwelling) => {
     if (!dwelling) return;
     const items: BudgetItem[] = [];
-    let demCount = 1;
-    let revCount = 1;
-    let insCount = 1;
+    let tabiquesCount = 1;
+    let sanitariosCount = 1;
+    let superficiesCount = 1;
     
     // Set to prevent double-counting shared partition walls
     const processedWalls = new Set<string>();
@@ -117,8 +117,8 @@ export const Dashboard: React.FC = () => {
           tabiques: [
             { label: "Muro divisorio con pasillo", length_m: 5.0, height_m: 2.70, area_m2: 13.50, material: "Ladrillo hueco doble" },
             { label: "Muro divisorio con habitación", length_m: 5.0, height_m: 2.70, area_m2: 13.50, material: "Ladrillo hueco doble" },
-            { label: "Muro exterior sur (fachada)", length_m: 5.0, height_m: 2.70, area_m2: 13.50, material: "Muro de carga" }, // Structural safety skip
-            { label: "Muro divisorio con patio", length_m: 5.0, height_m: 2.70, area_m2: 13.50, material: "Ladrillo" } // Structural skip
+            { label: "Muro exterior sur (fachada)", length_m: 5.0, height_m: 2.70, area_m2: 13.50, material: "Muro de carga" }, 
+            { label: "Muro divisorio con patio", length_m: 5.0, height_m: 2.70, area_m2: 13.50, material: "Ladrillo" } 
           ],
           sanitarios: [],
           proposed_materials: [],
@@ -134,7 +134,7 @@ export const Dashboard: React.FC = () => {
             { label: "Muro divisorio con salón", length_m: 4.0, height_m: 2.70, area_m2: 10.80, material: "Ladrillo hueco doble" },
             { label: "Muro divisorio con pasillo", length_m: 3.0, height_m: 2.70, area_m2: 8.10, material: "Ladrillo hueco doble" },
             { label: "Muro divisorio con habitación", length_m: 4.0, height_m: 2.70, area_m2: 10.80, material: "Ladrillo hueco doble" },
-            { label: "Muro exterior norte", length_m: 3.0, height_m: 2.70, area_m2: 8.10, material: "Muro de carga" } // Structural safety skip
+            { label: "Muro exterior norte", length_m: 3.0, height_m: 2.70, area_m2: 8.10, material: "Muro de carga" } 
           ],
           sanitarios: [
             { type: "fregadero", count: 1, action: "retirar" }
@@ -151,7 +151,7 @@ export const Dashboard: React.FC = () => {
           tabiques: [
             { label: "Muro divisorio con pasillo", length_m: 2.5, height_m: 2.70, area_m2: 6.75, material: "Ladrillo hueco doble" },
             { label: "Muro divisorio con habitación 3", length_m: 2.0, height_m: 2.70, area_m2: 5.40, material: "Ladrillo" },
-            { label: "Muro divisorio con vivienda 3", length_m: 2.5, height_m: 2.70, area_m2: 6.75, material: "Ladrillo" }, // Structural skip
+            { label: "Muro divisorio con vivienda 3", length_m: 2.5, height_m: 2.70, area_m2: 6.75, material: "Ladrillo" }, 
             { label: "Muro divisorio con baño 2", length_m: 2.0, height_m: 2.70, area_m2: 5.40, material: "Ladrillo" }
           ],
           sanitarios: [
@@ -171,8 +171,8 @@ export const Dashboard: React.FC = () => {
           tabiques: [
             { label: "Muro divisorio con pasillo", length_m: 2.0, height_m: 2.70, area_m2: 5.40, material: "Ladrillo hueco doble" },
             { label: "Muro divisorio con baño 1", length_m: 2.0, height_m: 2.70, area_m2: 5.40, material: "Ladrillo" },
-            { label: "Muro divisorio con vivienda 3", length_m: 2.0, height_m: 2.70, area_m2: 5.40, material: "Ladrillo" }, // Structural skip
-            { label: "Muro exterior norte", length_m: 2.0, height_m: 2.70, area_m2: 5.40, material: "Muro de carga" } // Structural safety skip
+            { label: "Muro divisorio con vivienda 3", length_m: 2.0, height_m: 2.70, area_m2: 5.40, material: "Ladrillo" }, 
+            { label: "Muro exterior norte", length_m: 2.0, height_m: 2.70, area_m2: 5.40, material: "Muro de carga" } 
           ],
           sanitarios: [
             { type: "inodoro", count: 1, action: "retirar" },
@@ -190,7 +190,7 @@ export const Dashboard: React.FC = () => {
           height_m: 2.70,
           tabiques: [
             { label: "Muro divisorio con cocina", length_m: 5.0, height_m: 2.70, area_m2: 13.50, material: "Ladrillo hueco doble" },
-            { label: "Muro exterior norte", length_m: 3.0, height_m: 2.70, area_m2: 8.10, material: "Muro de carga" }, // Structural skip
+            { label: "Muro exterior norte", length_m: 3.0, height_m: 2.70, area_m2: 8.10, material: "Muro de carga" }, 
             { label: "Muro divisorio con pasillo", length_m: 5.0, height_m: 2.70, area_m2: 13.50, material: "Ladrillo hueco doble" },
             { label: "Muro divisorio con habitación 2", length_m: 3.0, height_m: 2.70, area_m2: 8.10, material: "Ladrillo hueco doble" }
           ],
@@ -206,9 +206,9 @@ export const Dashboard: React.FC = () => {
           height_m: 2.70,
           tabiques: [
             { label: "Muro divisorio con habitación 1", length_m: 4.0, height_m: 2.70, area_m2: 10.80, material: "Ladrillo hueco doble" },
-            { label: "Muro divisorio con patio", length_m: 3.0, height_m: 2.70, area_m2: 8.10, material: "Ladrillo hueco doble" }, // Structural skip
+            { label: "Muro divisorio con patio", length_m: 3.0, height_m: 2.70, area_m2: 8.10, material: "Ladrillo hueco doble" }, 
             { label: "Muro divisorio con salón", length_m: 4.0, height_m: 2.70, area_m2: 10.80, material: "Ladrillo hueco doble" },
-            { label: "Muro exterior sur", length_m: 3.0, height_m: 2.70, area_m2: 8.10, material: "Muro de carga" } // Structural skip
+            { label: "Muro exterior sur", length_m: 3.0, height_m: 2.70, area_m2: 8.10, material: "Muro de carga" } 
           ],
           sanitarios: [],
           proposed_materials: [],
@@ -222,9 +222,9 @@ export const Dashboard: React.FC = () => {
           height_m: 2.70,
           tabiques: [
             { label: "Muro divisorio con pasillo", length_m: 3.5, height_m: 2.70, area_m2: 9.45, material: "Ladrillo hueco doble" },
-            { label: "Muro exterior sur", length_m: 3.0, height_m: 2.70, area_m2: 8.10, material: "Muro de carga" }, // Structural skip
+            { label: "Muro exterior sur", length_m: 3.0, height_m: 2.70, area_m2: 8.10, material: "Muro de carga" }, 
             { label: "Muro divisorio con baño", length_m: 3.5, height_m: 2.70, area_m2: 9.45, material: "Ladrillo hueco doble" },
-            { label: "Muro divisorio con vivienda 4", length_m: 3.0, height_m: 2.70, area_m2: 8.10, material: "Ladrillo" } // Structural skip
+            { label: "Muro divisorio con vivienda 4", length_m: 3.0, height_m: 2.70, area_m2: 8.10, material: "Ladrillo" } 
           ],
           sanitarios: [],
           proposed_materials: [],
@@ -243,7 +243,7 @@ export const Dashboard: React.FC = () => {
             { label: "Muro divisorio con habitación 3", length_m: 3.5, height_m: 2.70, area_m2: 9.45, material: "Ladrillo" },
             { label: "Muro divisorio con baño 1", length_m: 2.5, height_m: 2.70, area_m2: 6.75, material: "Ladrillo" },
             { label: "Muro divisorio con baño 2", length_m: 2.0, height_m: 2.70, area_m2: 5.40, material: "Ladrillo" },
-            { label: "Muro exterior sur", length_m: 1.0, height_m: 2.70, area_m2: 2.70, material: "Muro de carga" } // Structural skip
+            { label: "Muro exterior sur", length_m: 1.0, height_m: 2.70, area_m2: 2.70, material: "Muro de carga" } 
           ],
           sanitarios: [],
           proposed_materials: [],
@@ -261,7 +261,7 @@ export const Dashboard: React.FC = () => {
       const roomLabel = estancia.name || estancia.type?.toUpperCase() || "HABITACIÓN";
       const sourceRoom = roomLabel.toLowerCase().trim();
 
-      // A. Demolition: Tabique by Tabique
+      // A. Tabiquería de la Vivienda (Pure Physical Entities, No construction action/code yet)
       const tabiques = estancia.tabiques || [];
       if (tabiques.length > 0) {
         tabiques.forEach((tabique) => {
@@ -269,37 +269,18 @@ export const Dashboard: React.FC = () => {
           
           const labelLower = tabique.label.toLowerCase();
 
-          // 1. SAFETY FILTER: Never demolish structural load-bearing or exterior walls!
+          // 1. SAFETY FILTER: Never list structural facade or load-bearing elements as interior partition walls!
           const isStructural = /exterior|carga|vecino|fachada|vivienda\s+\d+|patio/i.test(labelLower) || 
                                /muro de carga/i.test(tabique.material?.toLowerCase() || '');
           if (isStructural) {
-            return; // Safety first: skip immediately
+            return; // Skip structural walls
           }
 
-          // Parse target room from the label (e.g. "Muro divisorio con cocina" -> target: "cocina")
+          // Parse target room from the label
           const targetMatch = labelLower.match(/con\s+([a-záéíóú0-9\s]+)/i);
           const targetRoom = targetMatch ? targetMatch[1].trim() : '';
 
-          // 2. USER DESIGN REFINEMENT FILTERS:
-          const isKitchenSalonPartition = (sourceRoom.includes('salón') && targetRoom.includes('cocina')) || 
-                                          (sourceRoom.includes('cocina') && targetRoom.includes('salón'));
-                                          
-          const isBedroomWall = sourceRoom.includes('habitación') || sourceRoom.includes('dormitorio') ||
-                                targetRoom.includes('habitación') || targetRoom.includes('dormitorio');
-
-          const isBathroom2 = sourceRoom.includes('baño 2') || targetRoom.includes('baño 2');
-
-          if (isKitchenSalonPartition && !openConceptKitchen) {
-            return; // User wants to preserve salon-kitchen wall
-          }
-          if (isBedroomWall && !demolishBedrooms) {
-            return; // User wants to preserve bedroom walls (skip demolition!)
-          }
-          if (isBathroom2 && !refurbishBothBathrooms) {
-            return; // User wants to preserve Bathroom 2 (skip demolition!)
-          }
-
-          // 3. GEOMETRY DEDUPLICATION FILTER:
+          // 2. GEOMETRY DEDUPLICATION FILTER:
           if (targetRoom) {
             const wallKey = [sourceRoom, targetRoom].sort().join('-');
             if (processedWalls.has(wallKey)) {
@@ -309,88 +290,41 @@ export const Dashboard: React.FC = () => {
           }
 
           items.push({
-            code: `DEM-0${demCount++}`,
-            description: `Demolición de tabique interior en ${roomLabel}: ${tabique.label} (${(tabique.length_m || 0).toFixed(1)} ml x ${(tabique.height_m || 0).toFixed(2)} m de alto, m: ${tabique.material || "Ladrillo hueco"})`,
+            code: `ENT-T0${tabiquesCount++}`,
+            description: `Tabique divisorio en ${roomLabel}: ${tabique.label} (${(tabique.length_m || 0).toFixed(1)} ml x ${(tabique.height_m || 0).toFixed(2)} m de alto, m: ${tabique.material || "Ladrillo hueco"})`,
             qty: tabique.area_m2 || ((tabique.length_m || 0) * (tabique.height_m || 0)) || 0,
             unit: 'm²',
-            status: 'Pendiente AI',
-            category: 'Demolición'
+            status: 'Pendiente',
+            category: 'Tabiquería de la Vivienda'
           });
         });
       }
 
-      // B. Dismantling of Sanitary/Plumbing Fixtures (Desmontaje de sanitarios)
-      const isBathroom2Room = sourceRoom.includes('baño 2');
-      if (isBathroom2Room && !refurbishBothBathrooms) {
-        return; // Skip dismantling of Bathroom 2 fixtures if not refurbishing it
-      }
-
+      // B. Aparatos Sanitarios Existentes (Pure Physical Entities)
       const sanitarios = estancia.sanitarios || [];
       if (sanitarios.length > 0) {
         sanitarios.forEach((sanitario) => {
           if (!sanitario) return;
-          if (sanitario.action?.toLowerCase() === 'retirar') {
-            items.push({
-              code: `DEM-S0${demCount++}`,
-              description: `Desmontaje, retirada y transporte a vertedero de aparato: ${(sanitario.type || "sanitario").toUpperCase()} en ${roomLabel}`,
-              qty: sanitario.count || 1,
-              unit: 'ud',
-              status: 'Pendiente AI',
-              category: 'Demolición'
-            });
-          }
+          items.push({
+            code: `ENT-S0${sanitariosCount++}`,
+            description: `Aparato sanitario: ${(sanitario.type || "sanitario").toUpperCase()} en ${roomLabel}`,
+            qty: sanitario.count || 1,
+            unit: 'ud',
+            status: 'Pendiente',
+            category: 'Aparatos Sanitarios Existentes'
+          });
         });
       }
 
-      // C. Flooring: Specific to this estancia
-      const isWetRoom = ["cocina", "baño", "toilet", "aseo"].includes(estancia.type?.toLowerCase() || "");
-      const floorMaterial = estancia.proposed_materials && estancia.proposed_materials.length > 0 
-        ? estancia.proposed_materials.join(', ')
-        : 'Pendiente de definición (clic para escribir)';
-
+      // C. Superficies y Áreas de Planta (Pure Physical Areas)
       items.push({
-        code: `REV-0${revCount++}`,
-        description: `Pavimentado con ${floorMaterial} en ${roomLabel}`,
+        code: `ENT-A0${superficiesCount++}`,
+        description: `Área de solado / pavimento en ${roomLabel}`,
         qty: estancia.area_m2 || 0,
         unit: 'm²',
-        status: 'Pendiente AI',
-        category: 'Revestimientos'
+        status: 'Pendiente',
+        category: 'Superficies y Áreas de Planta'
       });
-
-      // D. Wall Finishes: Specific to this estancia (assume ceiling height is estancia.height_m)
-      const h = estancia.height_m || 2.70;
-      if (isWetRoom) {
-        items.push({
-          code: `REV-1${revCount++}`,
-          description: `Alicatado de paredes con material cerámico en ${roomLabel} (Altura: ${h.toFixed(2)} m)`,
-          qty: parseFloat(((estancia.perimeter_m || 0) * h).toFixed(2)),
-          unit: 'm²',
-          status: 'Pendiente AI',
-          category: 'Revestimientos'
-        });
-      } else {
-        items.push({
-          code: `REV-1${revCount++}`,
-          description: `Pintura plástica lisa mate lavable color blanco en paredes de ${roomLabel} (Altura: ${h.toFixed(2)} m)`,
-          qty: parseFloat(((estancia.perimeter_m || 0) * h).toFixed(2)),
-          unit: 'm²',
-          status: 'Pendiente AI',
-          category: 'Revestimientos'
-        });
-      }
-
-      // E. Plumbing: Specific to this room/estancia (Fontanería por estancia)
-      const hasPlumbingFixtures = sanitarios.length > 0;
-      if (isWetRoom || hasPlumbingFixtures) {
-        items.push({
-          code: `INS-F0${insCount++}`,
-          description: `Instalación de red de fontanería, desagües y tomas de agua fría/caliente para ${roomLabel}`,
-          qty: 1.00,
-          unit: 'ud',
-          status: 'Validado',
-          category: 'Instalaciones'
-        });
-      }
     });
 
     setBudgetItems(items);

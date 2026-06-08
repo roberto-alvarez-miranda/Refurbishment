@@ -25,9 +25,9 @@ export const CypeParameterPopup: React.FC<CypeParameterPopupProps> = ({ item, on
   const [province, setProvince] = useState('asturias');
   
   // Distinguish the item type
-  const isSanitario = item.code.startsWith('DEM-S');
-  const isTabique = item.code.startsWith('DEM-0');
-  const isRevestimiento = item.category === 'Revestimientos';
+  const isSanitario = item.code.startsWith('DEM-S') || item.code.startsWith('ENT-S');
+  const isTabique = item.code.startsWith('DEM-0') || item.code.startsWith('ENT-T');
+  const isRevestimiento = item.category === 'Revestimientos' || item.category === 'Superficies y Áreas de Planta';
 
   // 1. Parametric states for Tabiques (DPT010)
   const [thickness, setThickness] = useState('1'); // 1: Hasta 10cm, 2: 10-20cm

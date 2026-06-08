@@ -97,7 +97,7 @@ export const AIPreview: React.FC<AIPreviewProps> = ({ items: initialItems, onCle
             className={`flex items-center gap-xs bg-secondary text-on-secondary px-md py-sm rounded-lg hover:opacity-90 transition-all shadow-sm font-bold ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             <span className="material-symbols-outlined text-[18px]" data-icon="save">save</span>
-            <span className="text-label-md font-label-md">{isSaving ? 'GUARDANDO...' : 'ACEPTAR Y PASAR A PRESUPUESTO'}</span>
+            <span className="text-label-md font-label-md">{isSaving ? 'GUARDANDO...' : 'CONFIRMAR LEVANTAMIENTO Y PASAR A PLANIFICACIÓN'}</span>
           </button>
           <button 
             onClick={onClear}

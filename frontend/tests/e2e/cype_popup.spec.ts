@@ -128,8 +128,8 @@ test.describe('CYPE Parametric Quality Selector & AI Material Specifier', () => 
     await expect(compileButton).toBeVisible();
     await compileButton.click();
 
-    // Wait for the table rows to be visible - click on coatings item to enable material search!
-    const itemCell = page.locator('text=↳ REV-01');
+    // Wait for the table rows to be visible - click on coatings physical entity to enable material search!
+    const itemCell = page.locator('text=↳ ENT-A01');
     await expect(itemCell).toBeVisible();
     await itemCell.click();
 

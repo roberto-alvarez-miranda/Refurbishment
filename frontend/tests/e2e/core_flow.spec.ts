@@ -90,12 +90,12 @@ test.describe('Core Renovation Workflow E2E', () => {
     // 4. Wait for AI parsing to complete and render results
     await expect(page.locator('text=Mediciones Capturadas (AI Preview)')).toBeVisible();
     
-    // Assert against the editable input value directly (since text lives in the value attribute!)
-    const descriptionInput = page.locator('input[value="Pavimentado con Suelo porcelánico gris en Cocina"]');
+    // Assert against the physical entity description input (pure Levantamiento!)
+    const descriptionInput = page.locator('input[value="Área de solado / pavimento en Cocina"]');
     await expect(descriptionInput).toBeVisible();
 
     // 5. Click Accept & Save and wait for the alert dialog to show
-    const saveButton = page.locator('text=ACEPTAR Y PASAR A PRESUPUESTO');
+    const saveButton = page.locator('text=CONFIRMAR LEVANTAMIENTO Y PASAR A PLANIFICACIÓN');
     await expect(saveButton).toBeVisible();
     
     const dialogPromise = page.waitForEvent('dialog');
@@ -104,7 +104,6 @@ test.describe('Core Renovation Workflow E2E', () => {
     
     // 6. Assert that the alert dialog is correct and dismiss it
     expect(dialog.message()).toContain('Se han guardado');
-    expect(dialog.message()).toContain('partidas validadas en Firestore');
     await dialog.accept();
   });
 });
