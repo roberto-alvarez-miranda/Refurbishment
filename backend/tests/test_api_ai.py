@@ -55,3 +55,29 @@ def test_preview_blueprint_endpoint(mock_ai_service_class, mock_verify):
     mock_parser.parse_blueprint.assert_called_once_with(
         "gs://my-bucket/plan.pdf", "application/pdf"
     )
+
+@patch("app.dependencies.auth.auth.verify_id_token")
+def test_specify_material_endpoint_fallback(mock_verify):
+    """
+    Tests that /api/ai/specifier correctly resolves and utilizes the smart fallback
+    when Google GenAI raises an exception (mocked client offline).
+    """
+    mock_verify.return_value = {"uid": "testuser"}
+    
+    # We don't mock genai, which will raise ImportError or exception, triggering fallback!
+    payload = {"query": "Porcelánico Gran Formato Marazzi"}
+    
+    response = client.post(
+        "/api/ai/specifier",
+        json=payload,
+        headers={"Authorization": "Bearer fake_token"}
+    )
+    
+    assert response.status_code == 200
+    data = response.json()
+    assert data["code"] == "MAT-LUX-01"
+    assert "Porcelánico gran formato" in data["description"]
+    assert data["price"] == 75.00
+    assert data["unit"] == "m2"
+    assert "Sistemas de Estimación" in data["source"]
+
