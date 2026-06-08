@@ -140,9 +140,9 @@ test.describe('CYPE Parametric Quality Selector & AI Material Specifier', () => 
     const provinceSelect = page.locator('select#cype-province');
     await provinceSelect.selectOption('madrid');
 
-    // Conmute thickness dropdown from 'Hasta 10 cm' to 'De 10 a 20 cm'
-    const thicknessSelect = page.locator('select#cype-param-thickness');
-    await thicknessSelect.selectOption('2'); // Suffix '2'
+    // Conmute revestimiento type dropdown from 'Solado' to 'Alicatado' (Suffix '2')
+    const revestimientoSelect = page.locator('select#cype-param-revestimiento');
+    await revestimientoSelect.selectOption('2');
 
     // Assert that the description and price are updated from CYPE API response
     await expect(page.locator('text=Alicatado de paredes con mortero de cemento').first()).toBeVisible();

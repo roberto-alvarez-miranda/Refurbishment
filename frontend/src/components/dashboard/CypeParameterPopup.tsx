@@ -39,6 +39,11 @@ export const CypeParameterPopup: React.FC<CypeParameterPopupProps> = ({ item, on
   const [sanitarioMethod, setSanitarioTypeMethod] = useState('0'); // 0: Manual, 1: Con herramientas
   const [sanitarioRecover, setSanitarioRecover] = useState('0'); // 0: Vertedero, 1: Recuperación
 
+  // 3. Parametric states for Revestimientos (REV010)
+  const [revestimientoType, setRevestimientoType] = useState('1'); // 1: Solado (Suelo), 2: Alicatado (Paredes), 3: Pintura lisa
+  const [glueType, setGlueType] = useState('0'); // 0: Adhesivo cementoso (Cola), 1: Mortero de cemento
+  const [finishMethod, setFinishMethod] = useState('0'); // 0: Manual con rejuntado, 1: Semiautomático
+
   // CYPE derived state
   const [cypeDescription, setCypeDescription] = useState('');
   const [cypePrice, setCypePrice] = useState(0);
@@ -49,7 +54,7 @@ export const CypeParameterPopup: React.FC<CypeParameterPopupProps> = ({ item, on
   const [specifierResult, setSpecifierResult] = useState<SpecifierResult | null>(null);
   const [isSpecifierLoading, setIsSpecifierLoading] = useState(false);
 
-  // Auto-detect sanitario type based on item description on mount!
+  // Auto-detect sanitarios and coatings types on mount
   useEffect(() => {
     if (isSanitario) {
       const desc = item.description.toLowerCase();
@@ -58,6 +63,15 @@ export const CypeParameterPopup: React.FC<CypeParameterPopupProps> = ({ item, on
       else if (desc.includes('bañera')) setSanitarioType('3');
       else if (desc.includes('plato') || desc.includes('ducha')) setSanitarioType('4');
       else if (desc.includes('fregadero')) setSanitarioType('5');
+    } else if (isRevestimiento) {
+      const desc = item.description.toLowerCase();
+      if (desc.includes('pavimentado') || desc.includes('suelo')) {
+        setRevestimientoType('1'); // Solado
+      } else if (desc.includes('alicatado') || desc.includes('paredes')) {
+        setRevestimientoType('2'); // Alicatado
+      } else if (desc.includes('pintura')) {
+        setRevestimientoType('3'); // Pintura
+      }
     }
   }, [item.code]);
 
@@ -69,7 +83,8 @@ export const CypeParameterPopup: React.FC<CypeParameterPopupProps> = ({ item, on
     if (isTabique) {
       return `DPT010_${thickness}_${method}_0_0_0_${disposal}`;
     }
-    return `REV010_${thickness}_${method}_0_0_0_${disposal}`;
+    // Revestimientos (REV010)
+    return `REV010_${revestimientoType}_${glueType}_0_0_0_${finishMethod}`;
   };
 
   // Trigger CYPE lookup on change of parameters or province
@@ -100,6 +115,10 @@ export const CypeParameterPopup: React.FC<CypeParameterPopupProps> = ({ item, on
             const types: Record<string, string> = { '1': 'Inodoro', '2': 'Lavabo', '3': 'Bañera', '4': 'Plato de ducha', '5': 'Fregadero' };
             setCypeDescription(`Desmontaje de aparato sanitario (${types[sanitarioType] || "lavabo"}), con medios manuales, y transporte a vertedero.`);
             setCypePrice(6.50 + (Number(sanitarioType) * 1.50));
+          } else if (isRevestimiento) {
+            const types: Record<string, string> = { '1': 'Solado cerámico', '2': 'Alicatado de paredes con material cerámico', '3': 'Pintura plástica lisa mate lavable color blanco' };
+            setCypeDescription(`Suministro y mano de obra para ${types[revestimientoType] || "solado"}, en soporte previamente nivelado y preparado (${finishMethod === '0' ? 'Manual' : 'Semiautomático'}).`);
+            setCypePrice(revestimientoType === '3' ? 6.80 : 18.20 + (Number(revestimientoType) * 1.20));
           } else {
             setCypeDescription(`Demolición de partición interior de fábrica de ladrillo cerámico, de ${thickness === '1' ? 'hasta 10 cm' : '10 a 20 cm'} de espesor (${method === '0' ? 'Manual' : 'Mecánico'}).`);
             setCypePrice(thickness === '1' ? 18.50 : 24.80);
@@ -113,7 +132,7 @@ export const CypeParameterPopup: React.FC<CypeParameterPopupProps> = ({ item, on
     };
 
     fetchCypeDetails();
-  }, [province, thickness, method, disposal, sanitarioType, sanitarioMethod, sanitarioRecover]);
+  }, [province, thickness, method, disposal, sanitarioType, sanitarioMethod, sanitarioRecover, revestimientoType, glueType, finishMethod]);
 
   const handleSearchMaterial = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -169,7 +188,7 @@ export const CypeParameterPopup: React.FC<CypeParameterPopupProps> = ({ item, on
     } else if (specifierResult) {
       finalDescription = `↳ [CYPE Colocación + Material ACAE]: Colocación de ${specifierResult.description} (${cypeDescription})`;
     } else {
-      finalDescription = `↳ [CYPE Demolición/Ejecución]: ${cypeDescription}`;
+      finalDescription = `↳ [CYPE Ejecución/Revestimiento]: ${cypeDescription}`;
     }
 
     onApply(finalDescription, finalPrice);
@@ -259,6 +278,49 @@ export const CypeParameterPopup: React.FC<CypeParameterPopupProps> = ({ item, on
                   >
                     <option value="0">Descombro y vertedero (Estándar)</option>
                     <option value="1">Recuperación y acopio en obra</option>
+                  </select>
+                </div>
+              </>
+            ) : isRevestimiento ? (
+              <>
+                {/* Revestimiento Type Dropdown */}
+                <div className="space-y-xs">
+                  <label className="text-label-sm font-label-md text-on-surface-variant block">Tipo de revestimiento</label>
+                  <select 
+                    id="cype-param-revestimiento"
+                    value={revestimientoType}
+                    onChange={(e) => setRevestimientoType(e.target.value)}
+                    className="w-full border border-outline-variant rounded-lg p-xs text-body-md bg-white cursor-pointer focus:ring-2 focus:ring-secondary focus:outline-none"
+                  >
+                    <option value="1">Solado (Pavimentación de suelos)</option>
+                    <option value="2">Alicatado (Paredes húmedas)</option>
+                    <option value="3">Pintura (Paredes secas)</option>
+                  </select>
+                </div>
+
+                {/* Glue/Preparation Type Dropdown */}
+                <div className="space-y-xs">
+                  <label className="text-label-sm font-label-md text-on-surface-variant block">Material de agarre / Base</label>
+                  <select 
+                    value={glueType}
+                    onChange={(e) => setGlueType(e.target.value)}
+                    className="w-full border border-outline-variant rounded-lg p-xs text-body-md bg-white cursor-pointer focus:ring-2 focus:ring-secondary focus:outline-none"
+                  >
+                    <option value="0">Adhesivo cementoso (Cola C2)</option>
+                    <option value="1">Mortero de cemento tradicional</option>
+                  </select>
+                </div>
+
+                {/* Finish Method Dropdown */}
+                <div className="space-y-xs">
+                  <label className="text-label-sm font-label-md text-on-surface-variant block">Técnica de rejuntado</label>
+                  <select 
+                    value={finishMethod}
+                    onChange={(e) => setFinishMethod(e.target.value)}
+                    className="w-full border border-outline-variant rounded-lg p-xs text-body-md bg-white cursor-pointer focus:ring-2 focus:ring-secondary focus:outline-none"
+                  >
+                    <option value="0">Manual con junta cementosa fina</option>
+                    <option value="1">Semiautomático con junta de resina</option>
                   </select>
                 </div>
               </>
