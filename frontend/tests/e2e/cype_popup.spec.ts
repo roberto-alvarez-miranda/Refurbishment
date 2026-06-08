@@ -123,6 +123,11 @@ test.describe('CYPE Parametric Quality Selector & AI Material Specifier', () => 
       buffer: Buffer.from('fake-jpeg-data'),
     });
 
+    // STEP 3.5: Click "COMPILAR PRESUPUESTO OPTIMIZADO" inside the Refinement Panel!
+    const compileButton = page.locator('text=COMPILAR PRESUPUESTO OPTIMIZADO');
+    await expect(compileButton).toBeVisible();
+    await compileButton.click();
+
     // Wait for the table rows to be visible - click on coatings item to enable material search!
     const itemCell = page.locator('text=↳ REV-01');
     await expect(itemCell).toBeVisible();

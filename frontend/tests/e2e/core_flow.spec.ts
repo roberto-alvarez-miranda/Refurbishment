@@ -82,6 +82,11 @@ test.describe('Core Renovation Workflow E2E', () => {
       buffer: Buffer.from('fake-jpeg-data'),
     });
 
+    // STEP 3.5: Click "COMPILAR PRESUPUESTO OPTIMIZADO" inside the Refinement Panel!
+    const compileButton = page.locator('text=COMPILAR PRESUPUESTO OPTIMIZADO');
+    await expect(compileButton).toBeVisible();
+    await compileButton.click();
+
     // 4. Wait for AI parsing to complete and render results
     await expect(page.locator('text=Mediciones Capturadas (AI Preview)')).toBeVisible();
     

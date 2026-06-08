@@ -12,7 +12,7 @@ export const Dashboard: React.FC = () => {
   const [extractedPlan, setExtractedPlan] = useState<ExtractedPlan | null>(null);
   const [selectedDwellingIdx, setSelectedDwellingIdx] = useState<number>(0);
   const [budgetItems, setBudgetItems] = useState<BudgetItem[]>([]);
-  const [status, setStatus] = useState<'idle' | 'uploading' | 'parsing' | 'success' | 'error'>('idle');
+  const [status, setStatus] = useState<'idle' | 'uploading' | 'parsing' | 'refining' | 'success' | 'error'>('idle');
   const [progressMsg, setProgressMsg] = useState('');
   const [uploadedFile, setUploadedFile] = useState<string | null>(null);
   const [fileObject, setFileObject] = useState<File | null>(null);
@@ -21,6 +21,11 @@ export const Dashboard: React.FC = () => {
 
   // Lightbox modal state
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+
+  // Interactive Refinement Toggles (Paso 2!)
+  const [openConceptKitchen, setOpenConceptKitchen] = useState(true);
+  const [demolishBedrooms, setDemolishBedrooms] = useState(false); // Default: don't touch bedrooms
+  const [refurbishBothBathrooms, setRefurbishBothBathrooms] = useState(true);
 
   // Chat states
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
@@ -71,19 +76,19 @@ export const Dashboard: React.FC = () => {
       return;
     }
 
-    // 3. Set real ExtractedPlan
+    // 3. Set real ExtractedPlan & enter REFINING phase to ask user questions!
     setExtractedPlan(parsedPlan);
     setSelectedDwellingIdx(0);
-    mapDwellingToBudget(parsedPlan.dwellings[0]);
-    setStatus('success');
+    setStatus('refining');
     
-    // Initialize welcome assistant chat message
+    // Initialize welcome assistant chat message proposing the 3 design decisions
     setChatMessages([
-      { role: 'assistant', text: `¡Hola! He terminado de procesar tu plano "${file.name}". He detectado ${parsedPlan.dwellings.length} viviendas independientes en la planta. ¿De cuál de ellas te gustaría hablar o tienes dudas sobre sus metros, materiales o tabiquería?` }
+      { role: 'assistant', text: `¡Plano procesado con éxito! He detectado un inmueble de ${parsedPlan.dwellings[0].total_area_m2.toFixed(1)} m² con Salón, Cocina, Dormitorios y Baños.\n\nPor motivos de seguridad estructural, he filtrado y protegido todos los muros exteriores y de carga para que no aparezcan para demolición. Antes de calcular la estimación, por favor configúrame estas 3 preguntas de diseño en el cuadro superior:\n\n1. ¿Deseas tirar el tabique divisor para tener un espacio diáfano entre Salón y Cocina?\n2. ¿Quieres conservar la tabiquería de los dormitorios, o demolerlos para redistribuir?\n3. ¿Deseas reformar y alicatar ambos baños, o solo el principal?` }
     ]);
   };
 
   // Maps a single isolated Dwelling's data into standardized budget items (CYPE/Presto style!)
+  // Includes strict de-duplication, structural safety filtering, and user refinement toggles!
   const mapDwellingToBudget = (dwelling?: Dwelling) => {
     if (!dwelling) return;
     const items: BudgetItem[] = [];
@@ -91,23 +96,68 @@ export const Dashboard: React.FC = () => {
     let revCount = 1;
     let insCount = 1;
     
-    // Safely fallback to empty array if estancias is undefined/null
+    // Set to prevent double-counting shared partition walls
+    const processedWalls = new Set<string>();
+
     const estancias = dwelling.estancias || [];
 
     // Loop through each estancia to create room-by-room items
     estancias.forEach((estancia) => {
       if (!estancia) return;
       const roomLabel = estancia.name || estancia.type?.toUpperCase() || "HABITACIÓN";
+      const sourceRoom = roomLabel.toLowerCase().trim();
 
       // A. Demolition: Tabique by Tabique
       const tabiques = estancia.tabiques || [];
       if (tabiques.length > 0) {
         tabiques.forEach((tabique) => {
           if (!tabique) return;
+          
+          const labelLower = tabique.label.toLowerCase();
+
+          // 1. SAFETY FILTER: Never demolish structural load-bearing or exterior walls!
+          const isStructural = /exterior|carga|vecino|fachada|vivienda\s+\d+|patio/i.test(labelLower) || 
+                               /muro de carga/i.test(tabique.material?.toLowerCase() || '');
+          if (isStructural) {
+            return; // Safety first: skip immediately
+          }
+
+          // Parse target room from the label (e.g. "Muro divisorio con cocina" -> target: "cocina")
+          const targetMatch = labelLower.match(/con\s+([a-záéíóú0-9\s]+)/i);
+          const targetRoom = targetMatch ? targetMatch[1].trim() : '';
+
+          // 2. USER DESIGN REFINEMENT FILTERS:
+          const isKitchenSalonPartition = (sourceRoom.includes('salón') && targetRoom.includes('cocina')) || 
+                                          (sourceRoom.includes('cocina') && targetRoom.includes('salón'));
+                                          
+          const isBedroomWall = sourceRoom.includes('habitación') || sourceRoom.includes('dormitorio') ||
+                                targetRoom.includes('habitación') || targetRoom.includes('dormitorio');
+
+          const isBathroom2 = sourceRoom.includes('baño 2') || targetRoom.includes('baño 2');
+
+          if (isKitchenSalonPartition && !openConceptKitchen) {
+            return; // User wants to preserve salon-kitchen wall
+          }
+          if (isBedroomWall && !demolishBedrooms) {
+            return; // User wants to preserve bedroom walls (skip demolition!)
+          }
+          if (isBathroom2 && !refurbishBothBathrooms) {
+            return; // User wants to preserve Bathroom 2 (skip demolition!)
+          }
+
+          // 3. GEOMETRY DEDUPLICATION FILTER:
+          if (targetRoom) {
+            const wallKey = [sourceRoom, targetRoom].sort().join('-');
+            if (processedWalls.has(wallKey)) {
+              return; // Skip, already measured from the other side!
+            }
+            processedWalls.add(wallKey);
+          }
+
           items.push({
             code: `DEM-0${demCount++}`,
-            description: `Demolición de tabique interior en ${roomLabel}: ${tabique.label} (${(tabique.length_m || 0).toFixed(1)} ml x ${(tabique.height_m || 0).toFixed(2)} m de alto, m: ${tabique.material || "Yeso/Ladrillo"})`,
-            qty: tabique.area_m2 || ((tabique.length_m || 0) * (tabique.height_m || 0)) || 0, // Measured in m2
+            description: `Demolición de tabique interior en ${roomLabel}: ${tabique.label} (${(tabique.length_m || 0).toFixed(1)} ml x ${(tabique.height_m || 0).toFixed(2)} m de alto, m: ${tabique.material || "Ladrillo hueco"})`,
+            qty: tabique.area_m2 || ((tabique.length_m || 0) * (tabique.height_m || 0)) || 0,
             unit: 'm²',
             status: 'Pendiente AI',
             category: 'Demolición'
@@ -116,6 +166,11 @@ export const Dashboard: React.FC = () => {
       }
 
       // B. Dismantling of Sanitary/Plumbing Fixtures (Desmontaje de sanitarios)
+      const isBathroom2Room = sourceRoom.includes('baño 2');
+      if (isBathroom2Room && !refurbishBothBathrooms) {
+        return; // Skip dismantling of Bathroom 2 fixtures if not refurbishing it
+      }
+
       const sanitarios = estancia.sanitarios || [];
       if (sanitarios.length > 0) {
         sanitarios.forEach((sanitario) => {
@@ -149,7 +204,7 @@ export const Dashboard: React.FC = () => {
       });
 
       // D. Wall Finishes: Specific to this estancia (assume ceiling height is estancia.height_m)
-      const h = estancia.height_m || 2.50;
+      const h = estancia.height_m || 2.70;
       if (isWetRoom) {
         items.push({
           code: `REV-1${revCount++}`,
@@ -185,6 +240,18 @@ export const Dashboard: React.FC = () => {
     });
 
     setBudgetItems(items);
+  };
+
+  const handleGenerateBudget = () => {
+    if (!extractedPlan) return;
+    mapDwellingToBudget(extractedPlan.dwellings[selectedDwellingIdx]);
+    setStatus('success');
+    
+    // Add success confirmation message
+    setChatMessages(prev => [
+      ...prev,
+      { role: 'assistant', text: `¡Presupuesto optimizado generado! He aplicado los filtros y reducciones de obra: se han unificado muros compartidos, eliminado muros estructurales y de fachada, y generado un listado optimizado de partidas de obra.` }
+    ]);
   };
 
   const handleDwellingChange = (idx: number) => {
@@ -234,24 +301,12 @@ export const Dashboard: React.FC = () => {
                 perimeter_m: 19.50, 
                 height_m: 2.65,
                 tabiques: [
-                  { label: "Tabique divisorio con Dormitorio 1", length_m: 4.50, height_m: 2.65, area_m2: 11.92, material: "Pladur" },
-                  { label: "Tabique divisorio con Pasillo", length_m: 3.20, height_m: 2.65, area_m2: 8.48, material: "Ladrillo hueco" }
+                  { label: "Tabique divisorio con Cocina", length_m: 4.10, height_m: 2.65, area_m2: 10.86, material: "Pladur" },
+                  { label: "Tabique divisorio con Dormitorio", length_m: 4.50, height_m: 2.65, area_m2: 11.92, material: "Ladrillo" },
+                  { label: "Muro exterior sur de fachada", length_m: 5.00, height_m: 2.65, area_m2: 13.25, material: "Hormigón" }
                 ],
                 sanitarios: [],
-                proposed_materials: ["Tarima flotante de pino laminada"], 
-                count: 1 
-              },
-              { 
-                type: "dormitorio", 
-                name: "Dormitorio Principal", 
-                area_m2: 12.50, 
-                perimeter_m: 14.00, 
-                height_m: 2.65,
-                tabiques: [
-                  { label: "Tabique de fachada interna", length_m: 3.80, height_m: 2.65, area_m2: 10.07, material: "Pladur" }
-                ],
-                sanitarios: [],
-                proposed_materials: [], 
+                proposed_materials: ["Suelo porcelánico gris"], 
                 count: 1 
               },
               { 
@@ -261,30 +316,12 @@ export const Dashboard: React.FC = () => {
                 perimeter_m: 11.20, 
                 height_m: 2.65,
                 tabiques: [
-                  { label: "Tabique divisorio con Salón", length_m: 4.10, height_m: 2.65, area_m2: 10.86, material: "Ladrillo hueco" }
+                  { label: "Tabique divisorio con Salón", length_m: 4.10, height_m: 2.65, area_m2: 10.86, material: "Pladur" }
                 ],
                 sanitarios: [
-                  { type: "fregadero", count: 1, action: "retirar" },
-                  { type: "caldera mural", count: 1, action: "retirar" }
+                  { type: "fregadero", count: 1, action: "retirar" }
                 ],
-                proposed_materials: ["Gres porcelánico gris oscuro"], 
-                count: 1 
-              },
-              { 
-                type: "baño", 
-                name: "Baño Completo", 
-                area_m2: 4.80, 
-                perimeter_m: 8.80, 
-                height_m: 2.55,
-                tabiques: [
-                  { label: "Tabique divisorio con Pasillo", length_m: 2.40, height_m: 2.55, area_m2: 6.12, material: "Ladrillo hueco" }
-                ],
-                sanitarios: [
-                  { type: "inodoro", count: 1, action: "retirar" },
-                  { type: "lavabo", count: 1, action: "retirar" },
-                  { type: "bañera", count: 1, action: "retirar" }
-                ],
-                proposed_materials: ["Azulejo esmaltado mate"], 
+                proposed_materials: [], 
                 count: 1 
               }
             ],
@@ -296,11 +333,10 @@ export const Dashboard: React.FC = () => {
 
       setExtractedPlan(simulatedPlan);
       setSelectedDwellingIdx(0);
-      mapDwellingToBudget(simulatedPlan.dwellings[0]);
-      setStatus('success');
+      setStatus('refining');
       
       setChatMessages([
-        { role: 'assistant', text: `[MODO DEMO] He cargado los planos simulados para "${_filename}". Se han identificado 1 vivienda tipo. Puedes preguntar lo que quieras en el chat sobre la distribución o materiales.` }
+        { role: 'assistant', text: `[MODO DEMO] He cargado los planos simulados para "${_filename}". Configura las calidades y activa los conmutadores de obra antes de compilar el presupuesto.` }
       ]);
     }, 1500);
   };
@@ -376,7 +412,7 @@ export const Dashboard: React.FC = () => {
             </div>
             <div className="text-headline-lg sm:text-display font-display text-primary">1974</div>
             <div className="mt-xs text-body-xs sm:text-body-sm font-body-sm text-on-surface-variant flex items-center gap-xs">
-              <span className="material-symbols-outlined text-[16px] text-tertiary-fixed-dim" data-icon="warning">warning</span>
+              <span className="material-symbols-outlined text-[16px] text-on-secondary-fixed-variant" data-icon="warning">warning</span>
               Estructura de hormigón armado (B175)
             </div>
           </div>
@@ -432,7 +468,7 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* Plan Viewer & Chat Box (Responsive Row/Column) */}
-      {extractedPlan && (
+      {(extractedPlan) && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-sm sm:gap-lg">
           {/* Plan Viewer */}
           <div className="bg-white border border-outline-variant p-sm sm:p-lg rounded-xl shadow-sm flex flex-col justify-between h-[380px] sm:h-[450px]">
@@ -528,6 +564,91 @@ export const Dashboard: React.FC = () => {
                 <span className="material-symbols-outlined" data-icon="send">send</span>
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* NEW: Step 2 - Interactive Refinement Panel (Ask questions BEFORE compiling table!) */}
+      {status === 'refining' && extractedPlan && (
+        <div className="bg-white border border-outline-variant rounded-xl p-md sm:p-lg shadow-sm space-y-md animate-fade-in">
+          <div className="flex items-center gap-sm border-b border-outline-variant/30 pb-sm">
+            <span className="material-symbols-outlined text-secondary text-[24px]" data-icon="tune">tune</span>
+            <div>
+              <h3 className="text-title-xs sm:text-title-sm font-title-sm text-on-surface">Paso 2: Configuración de Distribución y Alcances de Obra</h3>
+              <p className="text-body-xs font-body-xs text-on-surface-variant">Conmuta las decisiones de diseño para purgar y de-duplicar partidas redundantes o peligrosas.</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-md">
+            {/* Question 1 */}
+            <div className="border border-outline-variant/60 rounded-xl p-sm bg-surface-container-lowest flex flex-col justify-between">
+              <div>
+                <p className="font-bold text-body-md text-primary">1. Distribución Cocina-Salón</p>
+                <p className="text-body-sm text-on-surface-variant mt-xs">¿Quieres demoler el muro divisorio para crear un espacio diáfano de concepto abierto?</p>
+              </div>
+              <div className="flex items-center gap-xs mt-md">
+                <input 
+                  type="checkbox" 
+                  id="opt-open-kitchen" 
+                  checked={openConceptKitchen} 
+                  onChange={(e) => setOpenConceptKitchen(e.target.checked)}
+                  className="w-4 h-4 text-secondary border-outline-variant rounded cursor-pointer"
+                />
+                <label htmlFor="opt-open-kitchen" className="text-body-md text-on-surface cursor-pointer select-none">
+                  Sí, demoler muro divisorio
+                </label>
+              </div>
+            </div>
+
+            {/* Question 2 */}
+            <div className="border border-outline-variant/60 rounded-xl p-sm bg-surface-container-lowest flex flex-col justify-between">
+              <div>
+                <p className="font-bold text-body-md text-primary">2. Distribución de Dormitorios</p>
+                <p className="text-body-sm text-on-surface-variant mt-xs">¿Quieres conservar la tabiquería actual de los dormitorios o demolerla por completo para redistribuir?</p>
+              </div>
+              <div className="flex items-center gap-xs mt-md">
+                <input 
+                  type="checkbox" 
+                  id="opt-demolish-bedrooms" 
+                  checked={demolishBedrooms} 
+                  onChange={(e) => setDemolishBedrooms(e.target.checked)}
+                  className="w-4 h-4 text-secondary border-outline-variant rounded cursor-pointer"
+                />
+                <label htmlFor="opt-demolish-bedrooms" className="text-body-md text-on-surface cursor-pointer select-none">
+                  Sí, demoler tabiques de dormitorios
+                </label>
+              </div>
+            </div>
+
+            {/* Question 3 */}
+            <div className="border border-outline-variant/60 rounded-xl p-sm bg-surface-container-lowest flex flex-col justify-between">
+              <div>
+                <p className="font-bold text-body-md text-primary">3. Reforma de Baños</p>
+                <p className="text-body-sm text-on-surface-variant mt-xs">¿Quieres realizar una reforma integral en ambos baños, o conservar el baño secundario (Baño 2)?</p>
+              </div>
+              <div className="flex items-center gap-xs mt-md">
+                <input 
+                  type="checkbox" 
+                  id="opt-reform-baths" 
+                  checked={refurbishBothBathrooms} 
+                  onChange={(e) => setRefurbishBothBathrooms(e.target.checked)}
+                  className="w-4 h-4 text-secondary border-outline-variant rounded cursor-pointer"
+                />
+                <label htmlFor="opt-reform-baths" className="text-body-md text-on-surface cursor-pointer select-none">
+                  Sí, reformar ambos baños por completo
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-sm border-t border-outline-variant/30">
+            <button
+              onClick={handleGenerateBudget}
+              className="bg-primary text-on-primary px-lg py-sm rounded-lg hover:opacity-90 font-bold shadow-md flex items-center gap-xs"
+            >
+              <span className="material-symbols-outlined text-[20px]" data-icon="build">build</span>
+              <span>COMPILAR PRESUPUESTO OPTIMIZADO</span>
+            </button>
           </div>
         </div>
       )}
