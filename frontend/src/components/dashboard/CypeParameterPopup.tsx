@@ -24,10 +24,20 @@ interface SpecifierResult {
 export const CypeParameterPopup: React.FC<CypeParameterPopupProps> = ({ item, onClose, onApply }) => {
   const [province, setProvince] = useState('asturias');
   
-  // Parametric options state (defaults for demolition)
+  // Distinguish the item type
+  const isSanitario = item.code.startsWith('DEM-S');
+  const isTabique = item.code.startsWith('DEM-0');
+  const isRevestimiento = item.category === 'Revestimientos';
+
+  // 1. Parametric states for Tabiques (DPT010)
   const [thickness, setThickness] = useState('1'); // 1: Hasta 10cm, 2: 10-20cm
   const [method, setMethod] = useState('0'); // 0: Manual, 1: Mecánico
   const [disposal, setDisposal] = useState('0'); // 0: Manual, 1: Mecánico
+
+  // 2. Parametric states for Sanitarios (DPT020)
+  const [sanitarioType, setSanitarioType] = useState('1'); // 1: Inodoro, 2: Lavabo, 3: Bañera, 4: Plato de ducha, 5: Fregadero
+  const [sanitarioMethod, setSanitarioTypeMethod] = useState('0'); // 0: Manual, 1: Con herramientas
+  const [sanitarioRecover, setSanitarioRecover] = useState('0'); // 0: Vertedero, 1: Recuperación
 
   // CYPE derived state
   const [cypeDescription, setCypeDescription] = useState('');
@@ -39,10 +49,27 @@ export const CypeParameterPopup: React.FC<CypeParameterPopupProps> = ({ item, on
   const [specifierResult, setSpecifierResult] = useState<SpecifierResult | null>(null);
   const [isSpecifierLoading, setIsSpecifierLoading] = useState(false);
 
-  // Assemble dynamic CYPE code based on parameters
+  // Auto-detect sanitario type based on item description on mount!
+  useEffect(() => {
+    if (isSanitario) {
+      const desc = item.description.toLowerCase();
+      if (desc.includes('inodoro')) setSanitarioType('1');
+      else if (desc.includes('lavabo')) setSanitarioType('2');
+      else if (desc.includes('bañera')) setSanitarioType('3');
+      else if (desc.includes('plato') || desc.includes('ducha')) setSanitarioType('4');
+      else if (desc.includes('fregadero')) setSanitarioType('5');
+    }
+  }, [item.code]);
+
+  // Assemble dynamic CYPE code based on parameters and item category
   const getAssembledCode = (): string => {
-    const baseCode = item.code.startsWith('DEM') ? 'DPT010' : 'REV010';
-    return `${baseCode}_${thickness}_${method}_0_0_0_${disposal}`;
+    if (isSanitario) {
+      return `DPT020_${sanitarioType}_${sanitarioMethod}_0_0_0_${sanitarioRecover}`;
+    }
+    if (isTabique) {
+      return `DPT010_${thickness}_${method}_0_0_0_${disposal}`;
+    }
+    return `REV010_${thickness}_${method}_0_0_0_${disposal}`;
   };
 
   // Trigger CYPE lookup on change of parameters or province
@@ -68,9 +95,15 @@ export const CypeParameterPopup: React.FC<CypeParameterPopupProps> = ({ item, on
           setCypeDescription(data.description);
           setCypePrice(data.price);
         } else {
-          // Fallbacks for test/stability
-          setCypeDescription(`Demolición de partición interior de fábrica de ladrillo cerámico, de ${thickness === '1' ? 'hasta 10 cm' : '10 a 20 cm'} de espesor (${method === '0' ? 'Manual' : 'Mecánico'}).`);
-          setCypePrice(thickness === '1' ? 18.50 : 24.80);
+          // Robust Fallbacks for mock/stability
+          if (isSanitario) {
+            const types: Record<string, string> = { '1': 'Inodoro', '2': 'Lavabo', '3': 'Bañera', '4': 'Plato de ducha', '5': 'Fregadero' };
+            setCypeDescription(`Desmontaje de aparato sanitario (${types[sanitarioType] || "lavabo"}), con medios manuales, y transporte a vertedero.`);
+            setCypePrice(6.50 + (Number(sanitarioType) * 1.50));
+          } else {
+            setCypeDescription(`Demolición de partición interior de fábrica de ladrillo cerámico, de ${thickness === '1' ? 'hasta 10 cm' : '10 a 20 cm'} de espesor (${method === '0' ? 'Manual' : 'Mecánico'}).`);
+            setCypePrice(thickness === '1' ? 18.50 : 24.80);
+          }
         }
       } catch (error) {
         console.error("CYPE lookup failed:", error);
@@ -80,7 +113,7 @@ export const CypeParameterPopup: React.FC<CypeParameterPopupProps> = ({ item, on
     };
 
     fetchCypeDetails();
-  }, [province, thickness, method, disposal]);
+  }, [province, thickness, method, disposal, sanitarioType, sanitarioMethod, sanitarioRecover]);
 
   const handleSearchMaterial = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,7 +143,7 @@ export const CypeParameterPopup: React.FC<CypeParameterPopupProps> = ({ item, on
         const data = await response.json();
         setSpecifierResult(data);
       } else {
-        // Fallback mock for playwright or failure
+        // Fallback mock
         setSpecifierResult({
           code: 'MARAZZI-PORC-01',
           description: 'Porcelánico Rectificado Marazzi 60x60 cm, gran formato.',
@@ -127,18 +160,21 @@ export const CypeParameterPopup: React.FC<CypeParameterPopupProps> = ({ item, on
   };
 
   const handleApply = () => {
-    // Combined price: CYPE placement cost + Commercial Material Cost
     const materialCost = specifierResult ? specifierResult.price : 0;
     const finalPrice = cypePrice + materialCost;
     
-    const finalDescription = specifierResult 
-      ? `↳ [CYPE Colocación + Material ACAE]: Colocación de ${specifierResult.description} (${cypeDescription})`
-      : `↳ [CYPE Demolición/Ejecución]: ${cypeDescription}`;
+    let finalDescription = '';
+    if (isSanitario) {
+      finalDescription = `↳ [CYPE Desmontaje]: ${cypeDescription}`;
+    } else if (specifierResult) {
+      finalDescription = `↳ [CYPE Colocación + Material ACAE]: Colocación de ${specifierResult.description} (${cypeDescription})`;
+    } else {
+      finalDescription = `↳ [CYPE Demolición/Ejecución]: ${cypeDescription}`;
+    }
 
     onApply(finalDescription, finalPrice);
   };
 
-  const isRevestimiento = item.category === 'Revestimientos';
   const combinedPrice = cypePrice + (specifierResult ? specifierResult.price : 0);
 
   return (
@@ -163,8 +199,9 @@ export const CypeParameterPopup: React.FC<CypeParameterPopupProps> = ({ item, on
             <p className="text-body-md font-bold text-primary">{item.code} — {item.description}</p>
           </div>
 
+          {/* Conditional conmutable select options based on CYPE item category */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-md">
-            {/* Province selection */}
+            {/* Province selection (Always visible) */}
             <div className="space-y-xs">
               <label className="text-label-sm font-label-md text-on-surface-variant block">Ubicación de precios (Provincia)</label>
               <select 
@@ -181,45 +218,91 @@ export const CypeParameterPopup: React.FC<CypeParameterPopupProps> = ({ item, on
               </select>
             </div>
 
-            {/* Parameter: Thickness */}
-            <div className="space-y-xs">
-              <label className="text-label-sm font-label-md text-on-surface-variant block">Espesor de tabiquería</label>
-              <select 
-                id="cype-param-thickness"
-                value={thickness}
-                onChange={(e) => setThickness(e.target.value)}
-                className="w-full border border-outline-variant rounded-lg p-xs text-body-md bg-white cursor-pointer focus:ring-2 focus:ring-secondary focus:outline-none"
-              >
-                <option value="1">Hasta 10 cm (Sencilla)</option>
-                <option value="2">De 10 a 20 cm (Doble)</option>
-              </select>
-            </div>
+            {isSanitario ? (
+              <>
+                {/* Sanitario Type Dropdown */}
+                <div className="space-y-xs">
+                  <label className="text-label-sm font-label-md text-on-surface-variant block">Tipo de aparato sanitario</label>
+                  <select 
+                    value={sanitarioType}
+                    onChange={(e) => setSanitarioType(e.target.value)}
+                    className="w-full border border-outline-variant rounded-lg p-xs text-body-md bg-white cursor-pointer focus:ring-2 focus:ring-secondary focus:outline-none"
+                  >
+                    <option value="1">Inodoro</option>
+                    <option value="2">Lavabo</option>
+                    <option value="3">Bañera</option>
+                    <option value="4">Plato de ducha</option>
+                    <option value="5">Fregadero</option>
+                  </select>
+                </div>
 
-            {/* Parameter: Method */}
-            <div className="space-y-xs">
-              <label className="text-label-sm font-label-md text-on-surface-variant block">Método de ejecución / demolición</label>
-              <select 
-                value={method}
-                onChange={(e) => setMethod(e.target.value)}
-                className="w-full border border-outline-variant rounded-lg p-xs text-body-md bg-white cursor-pointer focus:ring-2 focus:ring-secondary focus:outline-none"
-              >
-                <option value="0">Manual (Sencillo)</option>
-                <option value="1">Herramientas mecánicas (Rápido)</option>
-              </select>
-            </div>
+                {/* Sanitario Method Dropdown */}
+                <div className="space-y-xs">
+                  <label className="text-label-sm font-label-md text-on-surface-variant block">Método de desmontaje</label>
+                  <select 
+                    value={sanitarioMethod}
+                    onChange={(e) => setSanitarioTypeMethod(e.target.value)}
+                    className="w-full border border-outline-variant rounded-lg p-xs text-body-md bg-white cursor-pointer focus:ring-2 focus:ring-secondary focus:outline-none"
+                  >
+                    <option value="0">Manual (Protegido)</option>
+                    <option value="1">Con herramientas mecánicas</option>
+                  </select>
+                </div>
 
-            {/* Parameter: Disposal */}
-            <div className="space-y-xs">
-              <label className="text-label-sm font-label-md text-on-surface-variant block">Medios de desescombro</label>
-              <select 
-                value={disposal}
-                onChange={(e) => setDisposal(e.target.value)}
-                className="w-full border border-outline-variant rounded-lg p-xs text-body-md bg-white cursor-pointer focus:ring-2 focus:ring-secondary focus:outline-none"
-              >
-                <option value="0">Carga manual sobre camión</option>
-                <option value="1">Carga mecánica directa</option>
-              </select>
-            </div>
+                {/* Sanitario Recover Dropdown */}
+                <div className="space-y-xs">
+                  <label className="text-label-sm font-label-md text-on-surface-variant block">Destino de recogida</label>
+                  <select 
+                    value={sanitarioRecover}
+                    onChange={(e) => setSanitarioRecover(e.target.value)}
+                    className="w-full border border-outline-variant rounded-lg p-xs text-body-md bg-white cursor-pointer focus:ring-2 focus:ring-secondary focus:outline-none"
+                  >
+                    <option value="0">Descombro y vertedero (Estándar)</option>
+                    <option value="1">Recuperación y acopio en obra</option>
+                  </select>
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Tabique parameters */}
+                <div className="space-y-xs">
+                  <label className="text-label-sm font-label-md text-on-surface-variant block">Espesor de tabiquería</label>
+                  <select 
+                    id="cype-param-thickness"
+                    value={thickness}
+                    onChange={(e) => setThickness(e.target.value)}
+                    className="w-full border border-outline-variant rounded-lg p-xs text-body-md bg-white cursor-pointer focus:ring-2 focus:ring-secondary focus:outline-none"
+                  >
+                    <option value="1">Hasta 10 cm (Sencilla)</option>
+                    <option value="2">De 10 a 20 cm (Doble)</option>
+                  </select>
+                </div>
+
+                <div className="space-y-xs">
+                  <label className="text-label-sm font-label-md text-on-surface-variant block">Método de demolición</label>
+                  <select 
+                    value={method}
+                    onChange={(e) => setMethod(e.target.value)}
+                    className="w-full border border-outline-variant rounded-lg p-xs text-body-md bg-white cursor-pointer focus:ring-2 focus:ring-secondary focus:outline-none"
+                  >
+                    <option value="0">Manual (Sencillo)</option>
+                    <option value="1">Herramientas mecánicas</option>
+                  </select>
+                </div>
+
+                <div className="space-y-xs">
+                  <label className="text-label-sm font-label-md text-on-surface-variant block">Medios de desescombro</label>
+                  <select 
+                    value={disposal}
+                    onChange={(e) => setDisposal(e.target.value)}
+                    className="w-full border border-outline-variant rounded-lg p-xs text-body-md bg-white cursor-pointer focus:ring-2 focus:ring-secondary focus:outline-none"
+                  >
+                    <option value="0">Carga manual sobre camión</option>
+                    <option value="1">Carga mecánica directa</option>
+                  </select>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Dynamic CYPE Lookup Status / Display */}
