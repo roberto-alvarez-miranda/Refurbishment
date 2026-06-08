@@ -1,6 +1,7 @@
 import { Fragment, useState, useEffect } from 'react';
 import { saveBudget } from '../../services/api';
 import type { BudgetItem } from '../../services/api';
+import { CypeParameterPopup } from './CypeParameterPopup';
 
 interface AIPreviewProps {
   items: BudgetItem[];
@@ -11,6 +12,7 @@ export const AIPreview: React.FC<AIPreviewProps> = ({ items: initialItems, onCle
   const [items, setItems] = useState<BudgetItem[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [validatedCodes, setValidatedCodes] = useState<string[]>([]);
+  const [activePopupItem, setActivePopupItem] = useState<BudgetItem | null>(null);
 
   // Sync state with parent props
   useEffect(() => {
@@ -145,7 +147,13 @@ export const AIPreview: React.FC<AIPreviewProps> = ({ items: initialItems, onCle
                               className="w-4 h-4 text-secondary border-outline-variant rounded focus:ring-secondary cursor-pointer"
                             />
                           </td>
-                          <td className="px-md py-sm font-numeric-data text-primary">↳ {item.code}</td>
+                          <td 
+                            onClick={() => setActivePopupItem(item)}
+                            className="px-md py-sm font-numeric-data text-primary cursor-pointer hover:underline"
+                            title="Configurar calidades de CYPE (Zoom)"
+                          >
+                            ↳ {item.code}
+                          </td>
                           {/* Editable Description */}
                           <td className="px-md py-sm">
                             <input 
@@ -189,6 +197,17 @@ export const AIPreview: React.FC<AIPreviewProps> = ({ items: initialItems, onCle
           </table>
         </div>
       </div>
+
+      {activePopupItem && (
+        <CypeParameterPopup 
+          item={activePopupItem}
+          onClose={() => setActivePopupItem(null)}
+          onApply={(updatedDesc, _updatedPrice) => {
+            handleCellEdit(activePopupItem.code, 'description', updatedDesc);
+            setActivePopupItem(null);
+          }}
+        />
+      )}
     </section>
   );
 };

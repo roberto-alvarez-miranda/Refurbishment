@@ -3,7 +3,7 @@ import { Buffer } from 'buffer';
 
 test.describe('Core Renovation Workflow E2E', () => {
   test('should allow a user to upload a plan, see AI-extracted preview, and save it', async ({ page }) => {
-    // Intercept GCS Upload
+    // Intercept GCS Upload (Original correct path!)
     await page.route('**/upload-asset', async (route) => {
       expect(route.request().method()).toBe('POST');
       await route.fulfill({
@@ -23,15 +23,27 @@ test.describe('Core Renovation Workflow E2E', () => {
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-          rooms: [
+          dwellings: [
             {
-              name: 'Cocina',
-              length: 4.0,
-              width: 3.0,
-              height: 2.5,
-              materials: [
-                { type: 'floor', name: 'Suelo porcelánico gris', confidence: 0.95 }
-              ]
+              name: 'Vivienda A',
+              total_area_m2: 59.80,
+              estancias: [
+                {
+                  type: 'cocina',
+                  name: 'Cocina',
+                  area_m2: 8.50,
+                  perimeter_m: 11.20,
+                  height_m: 2.65,
+                  tabiques: [
+                    { label: 'Tabique divisorio con Salón', length_m: 4.10, height_m: 2.65, area_m2: 10.86, material: 'Ladrillo' }
+                  ],
+                  sanitarios: [
+                    { type: 'fregadero', count: 1, action: 'retirar' }
+                  ],
+                  proposed_materials: ['Suelo porcelánico gris']
+                }
+              ],
+              exterior_walls_ml: 24.10
             }
           ],
           general_notes: 'Retirada de falsos techos'
@@ -72,10 +84,13 @@ test.describe('Core Renovation Workflow E2E', () => {
 
     // 4. Wait for AI parsing to complete and render results
     await expect(page.locator('text=Mediciones Capturadas (AI Preview)')).toBeVisible();
-    await expect(page.locator('text=Suministro e instalación de pavimento (Suelo porcelánico gris) en Cocina')).toBeVisible();
+    
+    // Assert against the editable input value directly (since text lives in the value attribute!)
+    const descriptionInput = page.locator('input[value="Pavimentado con Suelo porcelánico gris en Cocina"]');
+    await expect(descriptionInput).toBeVisible();
 
     // 5. Click Accept & Save and wait for the alert dialog to show
-    const saveButton = page.locator('text=ACEPTAR Y GUARDAR');
+    const saveButton = page.locator('text=ACEPTAR Y PASAR A PRESUPUESTO');
     await expect(saveButton).toBeVisible();
     
     const dialogPromise = page.waitForEvent('dialog');
@@ -83,7 +98,8 @@ test.describe('Core Renovation Workflow E2E', () => {
     const dialog = await dialogPromise;
     
     // 6. Assert that the alert dialog is correct and dismiss it
-    expect(dialog.message()).toBe('Presupuesto guardado con éxito en Firestore.');
+    expect(dialog.message()).toContain('Se han guardado');
+    expect(dialog.message()).toContain('partidas validadas en Firestore');
     await dialog.accept();
   });
 });
